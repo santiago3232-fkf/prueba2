@@ -3,7 +3,14 @@ function cargar(pagina){
 }
 
 let slideIndex = 1;
-showSlides(slideIndex);
+
+window.onload = function () {
+    showSlides(slideIndex);
+
+    setInterval(() => {
+        plusSlides(1);
+    }, 3000);
+};
 
 function plusSlides(n) {
   showSlides(slideIndex += n);
@@ -28,3 +35,6 @@ function showSlides(n) {
   slides[slideIndex-1].style.display = "block";  
   dots[slideIndex-1].className += " active";
 }
+setInterval(() => {
+  plusSlides(1);
+}, 5000);
