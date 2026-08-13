@@ -7,12 +7,12 @@
 
 body{
     background:#f4f4f4;
-    color:#333;
+    color:#1e1e1f;
 }
 
 /* Encabezado */
 header{
-    background:#0a192f;
+    background:hsla(268, 96%, 47%, 0.815);
     color:white;
     padding:20px;
     text-align:center;
@@ -230,7 +230,7 @@ img {vertical-align: middle;}
 /* Fading animation */
 .fade {
   animation-name: fade;
-  animation-duration: 1.5s;
+  animation-duration: 2s;
 }
 
 @keyframes fade {
@@ -264,7 +264,7 @@ img {vertical-align: middle;}
   object-fit:cover;
 }
 .fade{
-  animation: fade 1s;
+  animation: fade 2s;
 }
 
 @keyframes fade{
