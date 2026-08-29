@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Usuario - Empresa VR</title>
+  <link rel="stylesheet" href="https://unpkg.com/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    .role-badge-superadmin { background-color: #dc3545; color: white; }
+    .role-badge-admin { background-color: #fd7e14; color: white; }
+    .role-badge-vendedor { background-color: #0d6efd; color: white; }
+    .role-badge-cliente { background-color: #198754; color: white; }
+  </style>
+</head>
+<body class="bg-light">
+
+  <!-- Navbar de Navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="Index.html">
+        <img src="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png" alt="Logo" width="40" height="40" class="rounded-circle me-2">
+        <span>Plataforma VR</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="Index.html">Inicio</a></li>
+          <li class="nav-item"><a class="nav-link" href="tienda.html" target="visorIframe">Tienda</a></li>
+          <li class="nav-item"><a class="nav-link" href="catalogo.html" target="visorIframe">Catálogo</a></li>
+        </ul>
+        <div class="d-flex align-items-center">
+          <span id="userInfoNav" class="text-light me-3 fw-bold small">Cargando...</span>
+          <button id="btnLogout" class="btn btn-outline-danger btn-sm">Cerrar Sesión</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+    <!-- Header del Perfil -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+          <h2 class="h4 mb-1" id="userName">Cargando usuario...</h2>
+          <p class="text-secondary mb-0" id="userEmail">...</p>
+        </div>
+        <div class="mt-2 mt-md-0">
+          <span class="fs-6 px-3 py-2 rounded-pill fw-bold" id="userRoleBadge">RUT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido dinámico según el Rol -->
+    <div id="roleContent">
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-2 text-secondary">Verificando permisos y cargando tu panel...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script type="module">
+    import { checkAuthState, logoutUser } from "./auth.js";
+    import { SUPER_ADMIN_EMAILS } from "./firebase-confi.js";
+
+    const userNameEl = document.getElementById("userName");
+    const userEmailEl = document.getElementById("userEmail");
+    const userRoleBadgeEl = document.getElementById("userRoleBadge");
+    const userInfoNavEl = document.getElementById("userInfoNav");
+    const roleContentEl = document.getElementById("roleContent");
+    const btnLogout = document.getElementById("btnLogout");
+
+    btnLogout.addEventListener("click", () => {
+      logoutUser();
+    });
+
+    // Escuchar estado de autenticación
+    checkAuthState((user, userData) => {
+      if (!user) {
+        // Redirigir a login si no ha iniciado sesión
+        window.location.href = "login.html";
+        return;
+      }
+
+      const role = userData ? userData.role : "cliente";
+      const name = userData ? `${userData.firstName || ''} ${userData.lastName || ''}`.trim() : user.email;
+
+      userNameEl.textContent = name || user.email;
+      userEmailEl.textContent = user.email;
+      userInfoNavEl.textContent = `${name || user.email}`;
+
+      // Configurar Insignia de Rol
+      userRoleBadgeEl.className = `fs-6 px-3 py-2 rounded-pill fw-bold role-badge-${role}`;
+      userRoleBadgeEl.textContent = role.toUpperCase();
+
+      // Renderizar vista según el Rol
+      renderRoleDashboard(role, user, userData);
+    });
+
+    function renderRoleDashboard(role, user, userData) {
+      if (role === "superadmin") {
+        roleContentEl.innerHTML = `
+          <div class="alert alert-danger shadow-sm">
+            <h4 class="alert-heading">🛡️ Panel de Super Administrador</h4>
+            <p class="mb-0">Cuentas con acceso y control absoluto sobre toda la plataforma y gestión de roles.</p>
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card h-100 shadow-sm border-danger">
+                <div class="card-header bg-danger text-white fw-bold">⭐️ Lista de los 4 Super Admins</div>
+                <div class="card-body">
+                  <p class="small text-secondary">Correos autorizados con el nivel máximo de privilegios en el sistema:</p>
+                  <ul class="list-group">
+                    ${SUPER_ADMIN_EMAILS.map((email, idx) => `
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><strong>#${idx + 1}</strong> ${email}</span>
+                        ${email.toLowerCase() === user.email.toLowerCase() ? '<span class="badge bg-success">Tú</span>' : '<span class="badge bg-secondary">Super Admin</span>'}
+                      </li>
+                    `).join('')}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100 shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">⚙️ Acciones de Super Administrador</div>
+                <div class="card-body">
+                  <div class="d-grid gap-2">
+                    <button class="btn btn-outline-danger">👥 Gestionar Todos los Usuarios</button>
+                    <button class="btn btn-outline-warning">🔑 Asignar Rol de Administrador</button>
+                    <button class="btn btn-outline-dark">📊 Estadísticas Globales del Sistema</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (role === "admin") {
+        roleContentEl.innerHTML = `
+          <div class="alert alert-warning shadow-sm">
+            <h4 class="alert-heading">💼 Panel de Administrador</h4>
+            <p class="mb-0">Gestión global de catálogo, supervisión de vendedores y tiendas.</p>
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">📦 Catálogo y Tiendas</div>
+                <div class="card-body">
+                  <p>Administra todos los productos subidos por vendedores o la tienda oficial.</p>
+                  <button class="btn btn-warning">Revisar Productos Pendientes</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">🏪 Gestión de Vendedores</div>
+                <div class="card-body">
+                  <p>Supervisa cuentas de vendedores y solicitudes de registro comercial.</p>
+                  <button class="btn btn-dark">Ver Lista de Vendedores</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (role === "vendedor") {
+        roleContentEl.innerHTML = `
+          <div class="alert alert-primary shadow-sm">
+            <h4 class="alert-heading">🏪 Panel de Vendedor</h4>
+            <p class="mb-0">Aquí puedes publicar tus productos, gestionar tu inventario y ver el estado de tus ventas.</p>
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card shadow-sm border-primary">
+                <div class="card-header bg-primary text-white fw-bold">➕ Publicar Nuevo Producto</div>
+                <div class="card-body">
+                  <form id="productForm">
+                    <div class="mb-3">
+                      <label class="form-label">Nombre del Producto</label>
+                      <input type="text" class="form-control" placeholder="Ej: Visor VR Pro" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Precio ($)</label>
+                      <input type="number" class="form-control" placeholder="100000" required>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="alert('Función de publicación activa para vendedores')">Publicar Producto</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white fw-bold">📦 Mis Productos Publicados</div>
+                <div class="card-body">
+                  <p class="text-muted">Aún no tienes productos publicados.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Cliente por defecto
+        roleContentEl.innerHTML = `
+          <div class="alert alert-success shadow-sm">
+            <h4 class="alert-heading">🛒 Panel de Cliente</h4>
+            <p class="mb-0">Explora nuestro catálogo de productos en realidad virtual y realiza tus compras fácilmente.</p>
+          </div>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card shadow-sm border-success">
+                <div class="card-header bg-success text-white fw-bold">🛍️ Ir a Comprar</div>
+                <div class="card-body">
+                  <p>Explora la tienda interactiva y el catálogo de productos disponibles.</p>
+                  <a href="Index.html" class="btn btn-success">Ir al Inicio / Tienda VR</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">📜 Mis Pedidos</div>
+                <div class="card-body">
+                  <p class="text-muted">No tienes compras recientes registadas.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
