@@ -1,123 +1,414 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PayNex - Plataforma de Comercio & VR</title>
+  <link rel="stylesheet" href="login.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Estilos personalizados para la página principal PayNex */
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      margin: 0;
+      font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    }
+    
+    .paynex-main-header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-<title>Mi Empresa VR</title>
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
 
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<link rel="stylesheet" href="style.css">
-<script src="script.js"></script>
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #ffffff;
+    }
+
+    .btn-nav-auth {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #ffffff !important;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .btn-nav-auth:hover {
+      transform: translateY(-2px);
+    }
+
+    .hero-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .hero-text h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-text p {
+      font-size: 16px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .badge-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Contenedor Auth Embed en la Página Principal */
+    .main-auth-box {
+      width: 100%;
+    }
+
+    .section-viewer {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<header>
-    <h1></h1>
-    <img src="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png" alt="Logo de la empresa" class="logo" width="150" height="150">
+  <!-- Header Superior Principal -->
+  <header class="paynex-main-header">
+    <a href="Index.html" class="brand-logo">
+      <div class="brand-icon">P</div>
+      <span class="brand-name">PayNex</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#inicio">Inicio</a>
+      <a href="#tiendaSection">Tienda VR</a>
+      <a href="#catalogo">Catálogo</a>
+      <a href="dashboard.html" class="btn-nav-auth" id="navDashboardLink">📊 Mi Panel / Dashboard</a>
+    </nav>
+  </header>
+
+  <!-- Hero & Sección Autenticación (Mockups 1 y 2) -->
+  <section class="hero-container" id="inicio">
     
-    <p>aqui podras encontrar todo lo que buscas en productos en tu vida diaria </p>
-</header>
+    <div class="hero-text">
+      <div class="badge-pill" style="width: fit-content; margin-bottom: 16px;">🚀 Plataforma de Comercio Interactiva</div>
+      <h1>Emprende hoy,<br>crea tu futuro.</h1>
+      <p>La plataforma segura para jóvenes que quieren comprar y vender productos online con experiencias en realidad virtual.</p>
 
-
-<div class="slideshow-container">
-
-<div class="mySlides fade">
-  <div class="numbertext">1 / 3</div>
-  <img src="img/daylight-environment-forest-459225.png" style="width:100%">
-  <div class="text">Caption Text</div>
-</div>
-
-<div class="mySlides fade">
-  <div class="numbertext">2 / 3</div> 
-  <img src="img/cielo.png" style="width:100%">
-  <div class="text">Caption Two</div>
-</div>
-
-<div class="mySlides fade">
-  <div class="numbertext">3 / 3</div>
-  <img src="img/carretera.png" style="width:100%">
-  <div class="text">Caption Three</div>
-</div>
-
-<a class="prev" onclick="plusSlides(-1)"></a>
-<a class="next" onclick="plusSlides(1)"></a>
-
-</div>
-<br>
-
-<div style="text-align:center">
-  <span class="dot" onclick="currentSlide(1)"></span> 
-  <span class="dot" onclick="currentSlide(2)"></span> 
-  <span class="dot" onclick="currentSlide(3)"></span> 
-</div>
-
-<nav>
-    <a href="#inicio">Inicio</a>
-    <a href="#vr">categorias</a>
-    <a href="#servicios">Servicios</a>
-    <a href="#contacto">Contacto</a>
-    <a href="login.html" style="font-weight: bold; color: #ffeb3b;">Mi Cuenta / Login</a>
-</nav>
-
-<section class="hero" id="inicio">
-    <h2>Bienvenido</h2>
-    <p>
-        Conoce nuestros productos y servicios mediante una experiencia
-        interactiva en realidad virtual
-    </p>
-</section>
-
-
-<div class="tabs">
-
-    <button onclick="cargar('tienda.html')">
-        Tienda
-    </button>
-
-    <button onclick="cargar('showroom.html')">
-        Showroom
-    </button>
-
-    <button onclick="cargar('catalogo.html')">
-        Catálogo
-    </button>
-
-    <button onclick="cargar('recorrido360.html')">
-        Recorrido 360°
-    </button>
-
-</div>
-
-<iframe
-    id="visor"
-    src="tienda.html">
-</iframe>
-
-<section class="servicios" id="servicios">
-
-    <div class="card">
-        <h3>Realidad Virtual</h3>
-        <p>Experiencias inmersivas para clientes y empresas.</p>
+      <div class="hero-badges">
+        <div class="badge-pill">🛒 Compras rápidas y seguras</div>
+        <div class="badge-pill">🏪 Tiendas para emprendedores</div>
+        <div class="badge-pill">💳 Retiros a Nequi / Bancos</div>
+      </div>
     </div>
 
-    <div class="card">
-        <h3>Desarrollo Web</h3>
-        <p>Sitios modernos y adaptables para cualquier dispositivo.</p>
+    <!-- Módulo de Iniciar Sesión / Registrarse integrado en la Portada -->
+    <div class="main-auth-box">
+      <div class="auth-wrapper" style="max-width: 500px;">
+        
+        <!-- VISTA LOGIN INLINE -->
+        <div id="loginCard" class="paynex-card" style="min-height: auto;">
+          <div class="paynex-form-container" style="width: 100%; padding: 32px 28px;">
+            
+            <div class="form-header">
+              <h1>Bienvenido de nuevo</h1>
+              <p>Inicia sesión en tu cuenta PayNex</p>
+            </div>
+
+            <div id="alertLogin" class="alert-box"></div>
+
+            <button type="button" class="btn-submit btn-google" id="btnGoogleLogin">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.689 7.689 0 0 1 5.352 2.082l-2.284 2.284A4.347 4.347 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.792 4.792 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.702 3.702 0 0 0 1.599-2.431H8v-3.08h7.545z"/>
+              </svg>
+              Continuar con Google
+            </button>
+
+            <form id="loginForm">
+              <div class="form-group">
+                <div class="input-icon-wrapper">
+                  <span class="input-icon">✉️</span>
+                  <input type="email" id="loginEmail" class="input-field" placeholder="usuario@email.com" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div class="input-icon-wrapper">
+                  <span class="input-icon">🔒</span>
+                  <input type="password" id="loginPassword" class="input-field" placeholder="••••••••" required>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-submit btn-purple">Ingresar a mi cuenta</button>
+              <button type="button" id="btnDemoLogin" class="btn-submit" style="background: #4b5563; margin-top: 8px;">⚡ Acceso Temporal (Demo)</button>
+            </form>
+
+            <div class="form-footer">
+              ¿No tienes cuenta? <a href="#" id="linkToRegister">Regístrate aquí</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISTA REGISTRO INLINE -->
+        <div id="registerCard" class="paynex-card" style="display: none; min-height: auto;">
+          <div class="paynex-form-container" style="width: 100%; padding: 32px 28px;">
+            
+            <div class="form-header">
+              <h1>Crea tu cuenta PayNex</h1>
+              <p>Comienza a comprar y vender productos hoy</p>
+            </div>
+
+            <div id="alertRegister" class="alert-box"></div>
+
+            <form id="registerForm">
+              <div class="form-group">
+                <input type="text" id="regFullName" class="input-field green-focus" placeholder="Nombre completo" required>
+              </div>
+
+              <div class="form-group">
+                <input type="email" id="regEmail" class="input-field green-focus" placeholder="Correo electrónico" required>
+              </div>
+
+              <div class="form-group">
+                <input type="text" id="regUsername" class="input-field green-focus" placeholder="@nombredeusuario" required>
+              </div>
+
+              <div class="form-group">
+                <select id="regRole" class="input-field green-focus" required>
+                  <option value="cliente" selected>🛒 Quiero Comprar (Cliente)</option>
+                  <option value="vendedor">🏪 Quiero Vender (Vendedor)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <input type="password" id="regPassword" class="input-field green-focus" placeholder="Contraseña" required minlength="6">
+              </div>
+
+              <div class="form-group">
+                <input type="password" id="regConfirmPassword" class="input-field green-focus" placeholder="Confirmar contraseña" required minlength="6">
+              </div>
+
+              <button type="submit" class="btn-submit btn-green">Crear mi cuenta</button>
+            </form>
+
+            <div class="form-footer">
+              ¿Ya tienes cuenta? <a href="#" id="linkToLogin" class="green-link">Inicia sesión</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <div class="card">
-        <h3>Innovación Digital</h3>
-        <p>Transformación digital para tu negocio.</p>
+  </section>
+
+  <!-- Sección de Visor de Tienda VR y Catálogo -->
+  <section class="section-viewer" id="tiendaSection">
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="font-size: 28px;">Explora la Tienda y Catálogo</h2>
+      <p style="color: #94a3b8;">Navega por los productos interactivos disponibles en PayNex.</p>
     </div>
 
-</section>
+    <div class="tabs">
+      <button onclick="cargar('tienda.html')">Tienda</button>
+      <button onclick="cargar('catalogo.html')">Catálogo</button>
+    </div>
 
-<footer id="contacto">
-    <h3>Contáctanos</h3>
-    <p>san.18gutierrez@gmail.com</p>
-    <p>+57 322 404 5855</p>
-</footer>
+    <iframe id="visor" src="tienda.html"></iframe>
+  </section>
 
+  <footer style="text-align: center; padding: 30px; background: #0b132b; color: #94a3b8; font-size: 14px;">
+    <p>© 2026 PayNex - Plataforma de Comercio Electrónico y VR. Todos los derechos reservados.</p>
+  </footer>
+
+  <script type="module">
+    import { registerUser, loginUser, loginWithGoogle, checkAuthState } from "./auth.js";
+
+    const loginCard = document.getElementById("loginCard");
+    const registerCard = document.getElementById("registerCard");
+    const linkToRegister = document.getElementById("linkToRegister");
+    const linkToLogin = document.getElementById("linkToLogin");
+    const alertLogin = document.getElementById("alertLogin");
+    const alertRegister = document.getElementById("alertRegister");
+
+    linkToRegister.addEventListener("click", (e) => {
+      e.preventDefault();
+      loginCard.style.display = "none";
+      registerCard.style.display = "block";
+      clearAlerts();
+    });
+
+    linkToLogin.addEventListener("click", (e) => {
+      e.preventDefault();
+      registerCard.style.display = "none";
+      loginCard.style.display = "block";
+      clearAlerts();
+    });
+
+    function showAlert(box, message, type = "error") {
+      box.className = `alert-box alert-${type}`;
+      box.textContent = message;
+    }
+
+    function clearAlerts() {
+      alertLogin.className = "alert-box";
+      alertLogin.textContent = "";
+      alertRegister.className = "alert-box";
+      alertRegister.textContent = "";
+    }
+
+    // Verificar estado de usuario
+    checkAuthState((user, userData) => {
+      const navBtn = document.getElementById("navDashboardLink");
+      if (user) {
+        navBtn.textContent = `👤 ${userData?.firstName || 'Mi Perfil'} (${(userData?.role || 'user').toUpperCase()})`;
+      }
+    });
+
+    // Submit Login
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearAlerts();
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+      const result = await loginUser(email, password);
+      if (result.success) {
+        showAlert(alertLogin, "¡Bienvenido! Redirigiendo a tu panel...", "success");
+        setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
+      } else {
+        showAlert(alertLogin, result.message, "error");
+      }
+    });
+
+    // Demo Login Button
+    document.getElementById("btnDemoLogin").addEventListener("click", async () => {
+      clearAlerts();
+      const email = document.getElementById("loginEmail").value.trim() || "demo@paynex.com";
+      await loginUser(email, "demo123");
+      showAlert(alertLogin, "¡Ingresando en Modo Temporal (Demo)! Redirigiendo...", "success");
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
+    });
+
+    // Submit Register
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearAlerts();
+      const fullName = document.getElementById("regFullName").value.trim();
+      const email = document.getElementById("regEmail").value.trim();
+      const role = document.getElementById("regRole").value;
+      const password = document.getElementById("regPassword").value;
+      const confirmPassword = document.getElementById("regConfirmPassword").value;
+
+      if (password !== confirmPassword) {
+        showAlert(alertRegister, "Las contraseñas no coinciden", "error");
+        return;
+      }
+
+      const nameParts = fullName.split(" ");
+      const firstName = nameParts[0] || "Usuario";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      const result = await registerUser(email, password, firstName, lastName, role);
+      if (result.success) {
+        showAlert(alertRegister, `¡Cuenta registrada exitosamente como ${result.role.toUpperCase()}! Redirigiendo...`, "success");
+        setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+      } else {
+        showAlert(alertRegister, result.message, "error");
+      }
+    });
+
+    // Google Login
+    document.getElementById("btnGoogleLogin").addEventListener("click", async () => {
+      clearAlerts();
+      const result = await loginWithGoogle("cliente");
+      if (result.success) {
+        showAlert(alertLogin, "¡Autenticación con Google exitosa! Redirigiendo...", "success");
+        setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+      } else {
+        showAlert(alertLogin, result.message, "error");
+      }
+    });
+  </script>
 </body>
 </html>

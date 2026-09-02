@@ -85,6 +85,9 @@
           <!-- Botón Ingresar -->
           <button type="submit" class="btn-submit btn-purple">Ingresar</button>
 
+          <!-- Botón Modo Demo Temporal -->
+          <button type="button" id="btnDemoLogin" class="btn-submit" style="background: #4b5563; margin-top: 10px;">⚡ Acceso Temporal (Sin Firebase)</button>
+
           <a href="#" class="forgot-password" onclick="alert('Ingresa tu correo en el campo y te ayudaremos a recuperar tu contraseña.')">¿Olvidaste tu contraseña?</a>
         </form>
 
@@ -150,6 +153,14 @@
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
               </span>
               <input type="email" id="regEmail" class="input-field green-focus" placeholder="Correo electrónico" required>
+            </div>
+          </div>
+
+          <!-- Nombre de Usuario (@) -->
+          <div class="form-group">
+            <div class="input-icon-wrapper">
+              <span class="input-icon">@</span>
+              <input type="text" id="regUsername" class="input-field green-focus" placeholder="Nombre de usuario (ej: @valengomez)" required>
             </div>
           </div>
 
@@ -331,6 +342,15 @@
 
     document.getElementById("btnGoogleLogin").addEventListener("click", () => handleGoogleAuth(false));
     document.getElementById("btnGoogleRegister").addEventListener("click", () => handleGoogleAuth(true));
+
+    // Botón Acceso Temporal (Demo sin Firebase)
+    document.getElementById("btnDemoLogin").addEventListener("click", async () => {
+      clearAlerts();
+      const email = document.getElementById("loginEmail").value.trim() || "demo@paynex.com";
+      const result = await loginUser(email, "demo123");
+      showAlert(alertLogin, "¡Ingresando en Modo Temporal (Demo)! Redirigiendo...", "success");
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
+    });
   </script>
 </body>
 </html>
