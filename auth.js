@@ -216,7 +216,8 @@ export function checkAuthState(callback) {
       firstName: tempUser.firstName,
       lastName: tempUser.lastName,
       email: tempUser.email,
-      role: tempUser.role
+      role: tempUser.role,
+      photoURL: tempUser.photoURL
     });
     return () => {};
   }
