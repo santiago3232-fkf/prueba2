@@ -85,9 +85,6 @@
           <!-- Botón Ingresar -->
           <button type="submit" class="btn-submit btn-purple">Ingresar</button>
 
-          <!-- Botón Modo Demo Temporal -->
-          <button type="button" id="btnDemoLogin" class="btn-submit" style="background: #4b5563; margin-top: 10px;">⚡ Acceso Temporal (Sin Firebase)</button>
-
           <a href="#" class="forgot-password" onclick="alert('Ingresa tu correo en el campo y te ayudaremos a recuperar tu contraseña.')">¿Olvidaste tu contraseña?</a>
         </form>
 
@@ -342,15 +339,6 @@
 
     document.getElementById("btnGoogleLogin").addEventListener("click", () => handleGoogleAuth(false));
     document.getElementById("btnGoogleRegister").addEventListener("click", () => handleGoogleAuth(true));
-
-    // Botón Acceso Temporal (Demo sin Firebase)
-    document.getElementById("btnDemoLogin").addEventListener("click", async () => {
-      clearAlerts();
-      const email = document.getElementById("loginEmail").value.trim() || "demo@paynex.com";
-      const result = await loginUser(email, "demo123");
-      showAlert(alertLogin, "¡Ingresando en Modo Temporal (Demo)! Redirigiendo...", "success");
-      setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
-    });
   </script>
 </body>
 </html>

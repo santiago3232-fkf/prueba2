@@ -1,5 +1,5 @@
 import { checkAuthState, logoutUser } from "./auth.js";
-import { db, doc, getDoc, setDoc } from "./firebase-confi.js";
+import { auth, db, doc, getDoc, setDoc, updateProfile } from "./firebase-confi.js";
 
 // Datos iniciales de simulación por defecto (si no existen en localStorage)
 const INITIAL_PRODUCTS = [
@@ -41,14 +41,20 @@ function initAuthState() {
       return;
     }
 
+    const nameParts = (user.displayName || "").split(" ");
+    const firstName = userData?.firstName || nameParts[0] || (user.email ? user.email.split("@")[0] : "Usuario");
+    const lastName = userData?.lastName || nameParts.slice(1).join(" ") || "";
+    const fullName = `${firstName} ${lastName}`.trim() || user.displayName || user.email;
+
     currentUser = {
       ...user,
       ...userData,
-      firstName: userData?.firstName || "Valentina",
-      lastName: userData?.lastName || "Gómez",
-      email: user.email || "valentina@correo.com",
-      role: userData?.role || "vendedor",
-      username: userData?.username || "@valengomez"
+      firstName,
+      lastName,
+      displayName: fullName,
+      email: user.email || "",
+      role: userData?.role || user.role || "cliente",
+      username: userData?.username || `@${firstName.toLowerCase()}`
     };
 
     updateUIWithUser(currentUser);
@@ -122,6 +128,13 @@ function initNavigation() {
       if (navItem) navItem.click();
     });
   });
+
+  // Soporte para hash en la URL (#products, #finances, #profile, etc.)
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const targetNav = document.querySelector(`.nav-item[data-view="${hash}"]`);
+    if (targetNav) targetNav.click();
+  }
 }
 
 // 3. Renderizar Dashboard (Inicio)
@@ -341,7 +354,7 @@ function initProfileForm() {
   const profileForm = document.getElementById("profileForm");
   if (!profileForm) return;
 
-  profileForm.addEventListener("submit", (e) => {
+  profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const fullName = document.getElementById("profileFullName").value.trim();
     const email = document.getElementById("profileEmail").value.trim();
@@ -356,13 +369,33 @@ function initProfileForm() {
       ...currentUser,
       firstName,
       lastName,
+      displayName: fullName,
       email,
       username,
       role
     };
 
-    // Actualizar sesión local
-    sessionStorage.setItem("paynex_temp_user", JSON.stringify(currentUser));
+    // Actualizar en Firebase Auth y Firestore para el usuario real
+    if (auth.currentUser) {
+      try {
+        await setDoc(doc(db, "users", auth.currentUser.uid), {
+          firstName,
+          lastName,
+          displayName: fullName,
+          username,
+          role
+        }, { merge: true });
+
+        try {
+          await updateProfile(auth.currentUser, { displayName: fullName });
+        } catch (authProfErr) {
+          console.warn("No se pudo actualizar displayName en Auth:", authProfErr);
+        }
+      } catch (fsErr) {
+        console.warn("Error actualizando perfil en Firestore:", fsErr);
+      }
+    }
+
     updateUIWithUser(currentUser);
     alert("¡Tus datos de perfil han sido actualizados con éxito!");
   });

@@ -5,18 +5,25 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp
+  onAuthStateChanged, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  updateProfile,
+  doc, 
+  getDoc, 
+  setDoc, 
+  serverTimestamp 
 } from "./firebase-confi.js";
+
+// Limpiar cualquier residuo de sesiones demo/temporales anteriores
+try {
+  sessionStorage.removeItem("paynex_temp_user");
+  localStorage.removeItem("paynex_temp_user");
+} catch (e) {}
 
 /**
  * Determina el rol final del usuario.
- * Si su correo está entre los 4 Super Admin, se le asigna 'superadmin'.
+ * Si su correo está entre los Super Admin, se le asigna 'superadmin'.
  * De lo contrario, se utiliza el rol seleccionado (cliente, vendedor o admin).
  */
 export function determineRole(email, selectedRole = "cliente") {
@@ -29,87 +36,78 @@ export function determineRole(email, selectedRole = "cliente") {
 }
 
 /**
- * Traduce códigos de error comunes de Firebase Auth a mensajes amigables en español
+ * Traduce códigos de error de Firebase Auth a mensajes claros en español
  */
-function parseAuthError(error) {
-  if (error.code === "auth/unauthorized-domain") {
-    const currentDomain = window.location.hostname || "tu dominio local";
-    return `El dominio '${currentDomain}' no está autorizado en tu consola de Firebase. Agrega '${currentDomain}' en Firebase Console -> Authentication -> Settings -> Authorized domains.`;
-  }
-  if (error.code === "auth/popup-closed-by-user") {
-    return "La ventana de inicio de sesión con Google fue cerrada antes de completar.";
-  }
-  if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
-    return "Correo o contraseña incorrectos.";
-  }
-  if (error.code === "auth/email-already-in-use") {
-    return "Este correo electrónico ya se encuentra registrado. Intenta iniciar sesión.";
-  }
-  return error.message || "Ocurrió un error inesperado al autenticar.";
-}
-
-/**
- * Manejo de sesión temporal local (cuando Firebase no está disponible o da error de permisos)
- */
-function setTempUser(email, role = "cliente", firstName = "Usuario", lastName = "Temporal") {
-  const tempUser = {
-    uid: "temp_" + Date.now(),
-    email: email,
-    displayName: `${firstName} ${lastName}`.trim(),
-    role: determineRole(email, role),
-    firstName: firstName,
-    lastName: lastName,
-    isTemp: true
-  };
-  sessionStorage.setItem("paynex_temp_user", JSON.stringify(tempUser));
-  return tempUser;
-}
-
-function getTempUser() {
-  const data = sessionStorage.getItem("paynex_temp_user");
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
+export function parseAuthError(error) {
+  if (!error) return "Ocurrió un error inesperado.";
+  switch (error.code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      return "Correo electrónico o contraseña incorrectos.";
+    case "auth/user-not-found":
+      return "No existe ninguna cuenta registrada con este correo electrónico.";
+    case "auth/email-already-in-use":
+      return "Este correo electrónico ya se encuentra registrado. Intenta iniciar sesión.";
+    case "auth/invalid-email":
+      return "El formato del correo electrónico no es válido.";
+    case "auth/weak-password":
+      return "La contraseña es muy débil. Debe tener al menos 6 caracteres.";
+    case "auth/too-many-requests":
+      return "Demasiados intentos fallidos. Por seguridad, inténtalo de nuevo más tarde.";
+    case "auth/network-request-failed":
+      return "Error de conexión. Verifica tu conexión a internet.";
+    case "auth/popup-closed-by-user":
+      return "La ventana de inicio de sesión con Google fue cerrada antes de completar el proceso.";
+    case "auth/unauthorized-domain": {
+      const currentDomain = window.location.hostname || "tu dominio";
+      return `El dominio '${currentDomain}' no está autorizado en Firebase Console. Agrégalo en Authentication -> Settings -> Authorized domains.`;
+    }
+    default:
+      return error.message || "Error al procesar la autenticación con Firebase.";
   }
 }
 
 /**
- * Registra un nuevo usuario con Email y Contraseña
+ * Registra un usuario real con Email y Contraseña en Firebase Auth y Firestore
  */
 export async function registerUser(email, password, firstName, lastName, selectedRole = "cliente") {
   const finalRole = determineRole(email, selectedRole);
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+    const fullName = `${firstName} ${lastName}`.trim();
 
-    // Guardar datos en Firestore document 'users/{uid}'
+    // Actualizar nombre en el perfil de Firebase Auth
+    try {
+      await updateProfile(user, { displayName: fullName });
+    } catch (profError) {
+      console.warn("No se pudo actualizar displayName en Auth:", profError);
+    }
+
+    // Guardar documento del usuario en Firestore (colección 'users')
     try {
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         firstName: firstName,
         lastName: lastName,
+        displayName: fullName,
         role: finalRole,
         createdAt: serverTimestamp()
       });
     } catch (fsError) {
-      console.warn("Firestore bloqueado. Creando usuario en sesión temporal local:", fsError);
-      setTempUser(email, finalRole, firstName, lastName);
+      console.warn("Advertencia: Firestore no disponible al registrar usuario:", fsError);
     }
 
     return { success: true, user, role: finalRole };
   } catch (error) {
-    console.warn("Error en Firebase Auth, usando modo temporal:", error);
-    // Si falla Firebase Auth (o no hay acceso), se habilita el acceso en modo temporal
-    const tempUser = setTempUser(email, finalRole, firstName, lastName);
-    return { success: true, user: tempUser, role: finalRole, isTemp: true };
+    console.error("Error al registrar usuario en Firebase Auth:", error);
+    return { success: false, message: parseAuthError(error), code: error.code };
   }
 }
 
 /**
- * Inicia sesión con Email y Contraseña
+ * Inicia sesión de un usuario real con Email y Contraseña en Firebase Auth
  */
 export async function loginUser(email, password) {
   const roleCalculated = determineRole(email, "cliente");
@@ -118,43 +116,57 @@ export async function loginUser(email, password) {
     const user = userCredential.user;
 
     let role = roleCalculated;
+    let userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || user.email.split("@")[0],
+      role: role
+    };
+
     try {
-      let userDocRef = doc(db, "users", user.uid);
-      let userSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
 
       if (userSnap.exists()) {
-        role = userSnap.data().role || roleCalculated;
+        const firestoreData = userSnap.data();
+        role = firestoreData.role || roleCalculated;
+        userData = { ...userData, ...firestoreData, role };
+
+        // Si es Super Admin, asegurar que su rol quede actualizado
         if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase()) && role !== "superadmin") {
           role = "superadmin";
+          userData.role = "superadmin";
           await setDoc(userDocRef, { role: "superadmin" }, { merge: true });
         }
       } else {
+        // Si no existía documento en Firestore, crearlo con datos reales
         const nameParts = (user.displayName || "").split(" ");
-        await setDoc(userDocRef, {
+        const firstName = nameParts[0] || user.email.split("@")[0];
+        const lastName = nameParts.slice(1).join(" ") || "";
+        userData = {
           uid: user.uid,
           email: user.email,
-          firstName: nameParts[0] || "Usuario",
-          lastName: nameParts.slice(1).join(" ") || "",
+          firstName: firstName,
+          lastName: lastName,
+          displayName: user.displayName || firstName,
           role: role,
           createdAt: serverTimestamp()
-        });
+        };
+        await setDoc(userDocRef, userData);
       }
     } catch (fsError) {
-      console.warn("Firestore bloqueado al iniciar sesión. Usando sesión temporal:", fsError);
-      setTempUser(user.email, role, "Usuario", "Prueba");
+      console.warn("Advertencia: Firestore inaccesible al iniciar sesión:", fsError);
     }
 
-    return { success: true, user, role };
+    return { success: true, user, userData, role };
   } catch (error) {
-    console.warn("Iniciando sesión en MODO TEMPORAL por fallo de Firebase:", error);
-    // Permite iniciar sesión temporalmente si Firebase no tiene permisos o acceso
-    const tempUser = setTempUser(email, roleCalculated, "Usuario", "Demo");
-    return { success: true, user: tempUser, role: roleCalculated, isTemp: true };
+    console.error("Error al iniciar sesión en Firebase Auth:", error);
+    return { success: false, message: parseAuthError(error), code: error.code };
   }
 }
 
 /**
- * Inicia sesión / Registro mediante Google
+ * Inicia sesión o registra un usuario real mediante Google Popup
  */
 export async function loginWithGoogle(selectedRole = "cliente") {
   try {
@@ -163,80 +175,91 @@ export async function loginWithGoogle(selectedRole = "cliente") {
     const user = result.user;
 
     let role = determineRole(user.email, selectedRole);
+    let userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || user.email.split("@")[0],
+      photoURL: user.photoURL || null,
+      role: role
+    };
+
     try {
-      let userDocRef = doc(db, "users", user.uid);
-      let userSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
 
       if (userSnap.exists()) {
-        role = userSnap.data().role || role;
+        const firestoreData = userSnap.data();
+        role = firestoreData.role || role;
+        userData = { ...userData, ...firestoreData, role };
       } else {
         const nameParts = (user.displayName || "").split(" ");
-        await setDoc(userDocRef, {
+        userData = {
           uid: user.uid,
           email: user.email,
           firstName: nameParts[0] || "Usuario",
           lastName: nameParts.slice(1).join(" ") || "",
+          displayName: user.displayName || "Usuario",
+          photoURL: user.photoURL || null,
           role: role,
           createdAt: serverTimestamp()
-        });
+        };
+        await setDoc(userDocRef, userData);
       }
     } catch (fsError) {
-      console.warn("Firestore inaccesible durante Google Login. Usando sesión temporal:", fsError);
-      setTempUser(user.email, role, user.displayName || "Usuario Google", "");
+      console.warn("Advertencia: Firestore inaccesible durante Google Login:", fsError);
     }
 
-    return { success: true, user, role };
+    return { success: true, user, userData, role };
   } catch (error) {
-    console.error("Error al iniciar con Google:", error);
+    console.error("Error al autenticar con Google:", error);
     return { success: false, message: parseAuthError(error), code: error.code };
   }
 }
 
 /**
- * Cierra la sesión activa
+ * Cierra la sesión activa en Firebase Auth
  */
 export async function logoutUser() {
-  sessionStorage.removeItem("paynex_temp_user");
   try {
+    sessionStorage.removeItem("paynex_temp_user");
+    localStorage.removeItem("paynex_temp_user");
     await signOut(auth);
   } catch (error) {
-    console.error("Error al cerrar sesión:", error);
+    console.error("Error al cerrar sesión en Firebase:", error);
   }
   window.location.href = "login.html";
 }
 
 /**
- * Escucha cambios en el estado de autenticación
+ * Escucha en tiempo real el estado de autenticación de usuarios reales en Firebase
  */
 export function checkAuthState(callback) {
-  // Primero revisar si hay un usuario temporal en sessionStorage
-  const tempUser = getTempUser();
-  if (tempUser) {
-    callback(tempUser, {
-      firstName: tempUser.firstName,
-      lastName: tempUser.lastName,
-      email: tempUser.email,
-      role: tempUser.role
-    });
-    return () => {};
-  }
-
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      let userData = { email: user.email, role: determineRole(user.email, "cliente") };
+      const nameParts = (user.displayName || "").split(" ");
+      let userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split("@")[0],
+        firstName: nameParts[0] || user.email.split("@")[0],
+        lastName: nameParts.slice(1).join(" ") || "",
+        photoURL: user.photoURL || null,
+        role: determineRole(user.email, "cliente")
+      };
+
       try {
         const userDocRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userDocRef);
         if (userSnap.exists()) {
-          userData = userSnap.data();
+          userData = { ...userData, ...userSnap.data() };
         }
       } catch (fsError) {
-        console.warn("Error leyendo Firestore en checkAuthState:", fsError);
+        console.warn("Advertencia: Error leyendo Firestore en checkAuthState:", fsError);
       }
+
       callback(user, userData);
     } else {
       callback(null, null);
     }
   });
 }
-
