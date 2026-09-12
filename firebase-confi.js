@@ -36,12 +36,11 @@ export const firebaseConfig = {
   measurementId: "G-SCX1NF6349"
 };
 
-// Configuración de los 4 Super Admin (correos autorizados con privilegios máximos)
+// Configuración de los 3 Super Admin (correos autorizados con privilegios máximos)
 export const SUPER_ADMIN_EMAILS = [
+  "gonzalezdaravinajostinjair@gmail.com",
   "samuelpaez0608@gmail.com",
-  "san.18gutierrez@gmail.com",
-  "danielestebanpaezbuitrago@gmail.com",
-  "gonzalesdaravinajostinjairjostinjair@gmail.com"
+  "san.18gutierrez@gmail.com"
 ];
 
 // Inicializar servicios Firebase

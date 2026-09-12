@@ -16,8 +16,7 @@ import {
 
 /**
  * Determina el rol final del usuario.
- * Si su correo está entre los 4 Super Admin, se le asigna 'superadmin'.
- * De lo contrario, se utiliza el rol seleccionado (cliente, vendedor o admin).
+ * Si su correo está entre los Super Admin, se le asigna 'superadmin'.
  */
 export function determineRole(email, selectedRole = "cliente") {
   if (!email) return selectedRole;
@@ -29,50 +28,34 @@ export function determineRole(email, selectedRole = "cliente") {
 }
 
 /**
- * Traduce códigos de error comunes de Firebase Auth a mensajes amigables en español
+ * Traduce códigos de error de Firebase Auth a mensajes en español
  */
 function parseAuthError(error) {
   if (error.code === "auth/unauthorized-domain") {
-    const currentDomain = window.location.hostname || "tu dominio local";
-    return `El dominio '${currentDomain}' no está autorizado en tu consola de Firebase. Agrega '${currentDomain}' en Firebase Console -> Authentication -> Settings -> Authorized domains.`;
+    const d = window.location.hostname || "tu dominio local";
+    return `El dominio '${d}' no está autorizado en Firebase. Agrégalo en Firebase Console → Authentication → Authorized domains.`;
   }
   if (error.code === "auth/popup-closed-by-user") {
-    return "La ventana de inicio de sesión con Google fue cerrada antes de completar.";
+    return "La ventana de Google fue cerrada antes de completar.";
   }
   if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
     return "Correo o contraseña incorrectos.";
   }
   if (error.code === "auth/email-already-in-use") {
-    return "Este correo electrónico ya se encuentra registrado. Intenta iniciar sesión.";
+    return "Este correo ya está registrado. Intenta iniciar sesión.";
   }
-  return error.message || "Ocurrió un error inesperado al autenticar.";
+  return error.message || "Ocurrió un error inesperado.";
 }
 
 /**
- * Manejo de sesión temporal local (cuando Firebase no está disponible o da error de permisos)
+ * Genera un @username a partir del nombre o email
  */
-function setTempUser(email, role = "cliente", firstName = "Usuario", lastName = "Temporal") {
-  const tempUser = {
-    uid: "temp_" + Date.now(),
-    email: email,
-    displayName: `${firstName} ${lastName}`.trim(),
-    role: determineRole(email, role),
-    firstName: firstName,
-    lastName: lastName,
-    isTemp: true
-  };
-  sessionStorage.setItem("paynex_temp_user", JSON.stringify(tempUser));
-  return tempUser;
-}
-
-function getTempUser() {
-  const data = sessionStorage.getItem("paynex_temp_user");
-  if (!data) return null;
-  try {
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
-  }
+function buildUsername(firstName, email) {
+  const base = (firstName || email?.split("@")[0] || "usuario")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9_]/g, "");
+  return `@${base}`;
 }
 
 /**
@@ -84,27 +67,28 @@ export async function registerUser(email, password, firstName, lastName, selecte
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Guardar datos en Firestore document 'users/{uid}'
+    const username = buildUsername(firstName, email);
+
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      firstName: firstName,
+      lastName: lastName,
+      username: username,
+      role: finalRole,
+      createdAt: serverTimestamp()
+    };
+
     try {
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        firstName: firstName,
-        lastName: lastName,
-        role: finalRole,
-        createdAt: serverTimestamp()
-      });
+      await setDoc(doc(db, "users", user.uid), userData);
     } catch (fsError) {
-      console.warn("Firestore bloqueado. Creando usuario en sesión temporal local:", fsError);
-      setTempUser(email, finalRole, firstName, lastName);
+      console.warn("Firestore bloqueado al registrar:", fsError);
     }
 
     return { success: true, user, role: finalRole };
   } catch (error) {
-    console.warn("Error en Firebase Auth, usando modo temporal:", error);
-    // Si falla Firebase Auth (o no hay acceso), se habilita el acceso en modo temporal
-    const tempUser = setTempUser(email, finalRole, firstName, lastName);
-    return { success: true, user: tempUser, role: finalRole, isTemp: true };
+    console.error("Error al registrar usuario:", error);
+    return { success: false, message: parseAuthError(error) };
   }
 }
 
@@ -112,44 +96,45 @@ export async function registerUser(email, password, firstName, lastName, selecte
  * Inicia sesión con Email y Contraseña
  */
 export async function loginUser(email, password) {
-  const roleCalculated = determineRole(email, "cliente");
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    let role = roleCalculated;
+    let role = determineRole(email, "cliente");
     try {
-      let userDocRef = doc(db, "users", user.uid);
-      let userSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
 
       if (userSnap.exists()) {
-        role = userSnap.data().role || roleCalculated;
-        if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase()) && role !== "superadmin") {
+        const data = userSnap.data();
+        role = data.role || role;
+        // Actualizar rol a superadmin si aplica
+        if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase()) && role !== "superadmin") {
           role = "superadmin";
           await setDoc(userDocRef, { role: "superadmin" }, { merge: true });
         }
       } else {
+        // Usuario existe en Auth pero no en Firestore — crearlo
         const nameParts = (user.displayName || "").split(" ");
+        const firstName = nameParts[0] || email.split("@")[0];
+        const lastName = nameParts.slice(1).join(" ") || "";
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
-          firstName: nameParts[0] || "Usuario",
-          lastName: nameParts.slice(1).join(" ") || "",
-          role: role,
+          firstName,
+          lastName,
+          username: buildUsername(firstName, email),
+          role,
           createdAt: serverTimestamp()
         });
       }
     } catch (fsError) {
-      console.warn("Firestore bloqueado al iniciar sesión. Usando sesión temporal:", fsError);
-      setTempUser(user.email, role, "Usuario", "Prueba");
+      console.warn("Firestore no disponible al iniciar sesión:", fsError);
     }
 
     return { success: true, user, role };
   } catch (error) {
-    console.warn("Iniciando sesión en MODO TEMPORAL por fallo de Firebase:", error);
-    // Permite iniciar sesión temporalmente si Firebase no tiene permisos o acceso
-    const tempUser = setTempUser(email, roleCalculated, "Usuario", "Demo");
-    return { success: true, user: tempUser, role: roleCalculated, isTemp: true };
+    return { success: false, message: parseAuthError(error) };
   }
 }
 
@@ -164,25 +149,27 @@ export async function loginWithGoogle(selectedRole = "cliente") {
 
     let role = determineRole(user.email, selectedRole);
     try {
-      let userDocRef = doc(db, "users", user.uid);
-      let userSnap = await getDoc(userDocRef);
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
 
       if (userSnap.exists()) {
         role = userSnap.data().role || role;
       } else {
         const nameParts = (user.displayName || "").split(" ");
+        const firstName = nameParts[0] || user.email.split("@")[0];
+        const lastName = nameParts.slice(1).join(" ") || "";
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
-          firstName: nameParts[0] || "Usuario",
-          lastName: nameParts.slice(1).join(" ") || "",
-          role: role,
+          firstName,
+          lastName,
+          username: buildUsername(firstName, user.email),
+          role,
           createdAt: serverTimestamp()
         });
       }
     } catch (fsError) {
-      console.warn("Firestore inaccesible durante Google Login. Usando sesión temporal:", fsError);
-      setTempUser(user.email, role, user.displayName || "Usuario Google", "");
+      console.warn("Firestore inaccesible en Google Login:", fsError);
     }
 
     return { success: true, user, role };
@@ -193,51 +180,88 @@ export async function loginWithGoogle(selectedRole = "cliente") {
 }
 
 /**
- * Cierra la sesión activa
+ * Cierra la sesión activa.
+ * Limpia TODO el estado local para evitar que el usuario vuelva atrás y acceda.
  */
 export async function logoutUser() {
-  sessionStorage.removeItem("paynex_temp_user");
+  // Limpiar todo el estado de sesión local/temporal
+  sessionStorage.clear();
+  localStorage.removeItem("paynex_temp_user");
+
   try {
     await signOut(auth);
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
   }
-  window.location.href = "login.html";
+  // Reemplazar el historial para que el botón "atrás" no regrese al dashboard
+  window.location.replace("login.html");
 }
 
 /**
- * Escucha cambios en el estado de autenticación
+ * Escucha cambios en el estado de autenticación.
+ * SIEMPRE usa Firebase onAuthStateChanged como fuente de verdad.
+ * El sessionStorage solo se usa como caché de datos adicionales del perfil.
  */
 export function checkAuthState(callback) {
-  // Primero revisar si hay un usuario temporal en sessionStorage
-  const tempUser = getTempUser();
-  if (tempUser) {
-    callback(tempUser, {
-      firstName: tempUser.firstName,
-      lastName: tempUser.lastName,
-      email: tempUser.email,
-      role: tempUser.role,
-      photoURL: tempUser.photoURL
-    });
-    return () => {};
-  }
-
-  return onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      let userData = { email: user.email, role: determineRole(user.email, "cliente") };
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists()) {
-          userData = userSnap.data();
-        }
-      } catch (fsError) {
-        console.warn("Error leyendo Firestore en checkAuthState:", fsError);
-      }
-      callback(user, userData);
-    } else {
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) {
+      // Sin sesión real en Firebase → limpiar caché y denegar acceso
+      sessionStorage.removeItem("paynex_temp_user");
       callback(null, null);
+      return;
     }
+
+    // Hay sesión real en Firebase → cargar datos de Firestore
+    let userData = {
+      firstName: "",
+      lastName: "",
+      username: "",
+      email: firebaseUser.email,
+      role: determineRole(firebaseUser.email, "cliente"),
+      photoURL: firebaseUser.photoURL || ""
+    };
+
+    try {
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userSnap = await getDoc(userDocRef);
+      if (userSnap.exists()) {
+        const firestoreData = userSnap.data();
+        // Firestore es la fuente de verdad para nombre, rol y username
+        userData = {
+          ...userData,
+          ...firestoreData
+        };
+      }
+    } catch (fsError) {
+      console.warn("No se pudo leer Firestore en checkAuthState:", fsError);
+      // Intentar recuperar del caché de sesión como fallback
+      try {
+        const cached = JSON.parse(sessionStorage.getItem("paynex_temp_user") || "null");
+        if (cached && cached.email === firebaseUser.email) {
+          userData = { ...userData, ...cached };
+        }
+      } catch (_) {}
+    }
+
+    // Si firstName sigue vacío, usar displayName de Google o parte del email
+    if (!userData.firstName) {
+      const nameParts = (firebaseUser.displayName || "").split(" ");
+      userData.firstName = nameParts[0] || firebaseUser.email.split("@")[0];
+      userData.lastName = nameParts.slice(1).join(" ") || "";
+    }
+
+    // Garantizar que username siempre tenga valor
+    if (!userData.username) {
+      userData.username = buildUsername(userData.firstName, firebaseUser.email);
+    }
+
+    // Guardar en caché de sesión para recuperación offline
+    sessionStorage.setItem("paynex_temp_user", JSON.stringify({
+      ...userData,
+      uid: firebaseUser.uid,
+      email: firebaseUser.email
+    }));
+
+    callback(firebaseUser, userData);
   });
 }
-

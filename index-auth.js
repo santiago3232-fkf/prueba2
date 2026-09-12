@@ -57,28 +57,25 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthState((user, userData) => {
     if (user) {
       // USUARIO LOGUEADO:
-      // Se abre automáticamente el menú lateral en index.html
       document.body.classList.add("sidebar-open");
       document.body.classList.add("is-logged-in");
 
       const navBtnText = document.querySelector("#btnToggleSidebar span");
       if (navBtnText) navBtnText.textContent = "Ocultar Menú";
 
-      const nameParts = (user.displayName || "").split(" ");
-      const firstName = userData?.firstName || user.firstName || nameParts[0] || (user.email ? user.email.split("@")[0] : "Usuario");
-      const lastName = userData?.lastName || user.lastName || nameParts.slice(1).join(" ") || "";
-      const fullName = (userData?.firstName || user.firstName) 
-        ? `${firstName} ${lastName}`.trim() 
-        : (user.displayName || user.email);
-      const role = (userData?.role || user.role || "cliente").toUpperCase();
-      const photo = user.photoURL || "img/register_panel.png";
+      // Nombre desde Firestore (userData) con fallback a Firebase Auth
+      const firstName = userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email?.split("@")[0] || "Usuario";
+      const lastName  = userData?.lastName  || (user.displayName ? user.displayName.split(" ").slice(1).join(" ") : "") || "";
+      const fullName  = `${firstName} ${lastName}`.trim();
+      const role      = (userData?.role || "cliente").toUpperCase();
+      const photo     = localStorage.getItem(`paynex_avatar_${user.email}`) || userData?.photoURL || user.photoURL || "img/register_panel.png";
 
-      if (userName) userName.textContent = fullName;
-      if (userRole) userRole.textContent = role;
-      if (userAvatar) userAvatar.src = photo;
-      if (userInfo) userInfo.style.display = "flex";
+      if (userName)   userName.textContent  = fullName;
+      if (userRole)   userRole.textContent   = role;
+      if (userAvatar) userAvatar.src         = photo;
+      if (userInfo)   userInfo.style.display = "flex";
 
-      if (btnLogin) btnLogin.style.display = "none";
+      if (btnLogin)  btnLogin.style.display  = "none";
       if (btnLogout) btnLogout.style.display = "flex";
 
       if (navLoginLink) {
@@ -91,9 +88,9 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.remove("is-logged-in");
       document.body.classList.remove("sidebar-open");
 
-      if (userInfo) userInfo.style.display = "none";
-      if (btnLogin) btnLogin.style.display = "flex";
-      if (btnLogout) btnLogout.style.display = "none";
+      if (userInfo)   userInfo.style.display  = "none";
+      if (btnLogin)   btnLogin.style.display   = "flex";
+      if (btnLogout)  btnLogout.style.display  = "none";
 
       if (navLoginLink) {
         navLoginLink.innerHTML = "Mi Cuenta / Login";
