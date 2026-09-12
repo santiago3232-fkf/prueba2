@@ -18,10 +18,10 @@ import {
 
 // ================= DATOS INICIALES POR DEFECTO =================
 const INITIAL_PRODUCTS = [
-  { id: 1, name: "Camiseta Oversize", category: "Ropa & Moda", price: 85000, stock: 15, status: "Activo", image: "img/login_panel.png", sellerId: "seller_default", sellerName: "Valentina Gómez" },
-  { id: 2, name: "Gorra Béisbol Streetwear", category: "Accesorios", price: 55000, stock: 8, status: "Activo", image: "img/register_panel.png", sellerId: "seller_default", sellerName: "Valentina Gómez" },
-  { id: 3, name: "Tenis Personalizados VR", category: "Calzado", price: 210000, stock: 5, status: "Activo", image: "img/register_illustration.png", sellerId: "seller_default", sellerName: "Valentina Gómez" },
-  { id: 4, name: "Visor VR Headset Pro", category: "Tecnología", price: 320000, stock: 3, status: "Activo", image: "img/login_illustration.png", sellerId: "seller_default", sellerName: "Valentina Gómez" }
+  { id: 1, name: "Camiseta Oversize", category: "Ropa & Moda", price: 85000, stock: 15, status: "Activo", image: "img/login_panel.png", sellerId: "seller_default", sellerName: "Vendedor PayNex" },
+  { id: 2, name: "Gorra Béisbol Streetwear", category: "Accesorios", price: 55000, stock: 8, status: "Activo", image: "img/register_panel.png", sellerId: "seller_default", sellerName: "Vendedor PayNex" },
+  { id: 3, name: "Tenis Personalizados VR", category: "Calzado", price: 210000, stock: 5, status: "Activo", image: "img/register_illustration.png", sellerId: "seller_default", sellerName: "Vendedor PayNex" },
+  { id: 4, name: "Visor VR Headset Pro", category: "Tecnología", price: 320000, stock: 3, status: "Activo", image: "img/login_illustration.png", sellerId: "seller_default", sellerName: "Vendedor PayNex" }
 ];
 
 const INITIAL_TRANSACTIONS = [
@@ -41,8 +41,8 @@ const INITIAL_ORDERS = [
     buyerName: "Carlos Ruiz", 
     buyerEmail: "carlos@correo.com",
     sellerId: "seller_default", 
-    sellerName: "Valentina Gómez",
-    sellerEmail: "valentina@correo.com",
+    sellerName: "Vendedor PayNex",
+    sellerEmail: "soporte@paynex.com",
     price: 85000, 
     quantity: 1, 
     totalAmount: 85000, 
@@ -58,8 +58,8 @@ const INITIAL_ORDERS = [
     buyerName: "Laura Herrera", 
     buyerEmail: "laura@correo.com",
     sellerId: "seller_default", 
-    sellerName: "Valentina Gómez",
-    sellerEmail: "valentina@correo.com",
+    sellerName: "Vendedor PayNex",
+    sellerEmail: "soporte@paynex.com",
     price: 55000, 
     quantity: 1, 
     totalAmount: 55000, 
@@ -111,25 +111,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ================= 1. AUTENTICACIÓN Y USUARIO =================
 function initAuthState() {
+  // Ocultar contenido hasta verificar sesión (evita flash de contenido)
+  document.querySelector(".app-container").style.visibility = "hidden";
+
   checkAuthState((user, userData) => {
     if (!user) {
-      window.location.href = "login.html";
+      window.location.replace("login.html");
       return;
     }
 
     const savedAvatar = localStorage.getItem(`paynex_avatar_${user.email}`);
 
+    // userData de Firestore tiene prioridad; las propiedades del objeto
+    // Firebase Auth (user) se usan solo como fallback para uid/email/photoURL
     currentUser = {
-      ...user,
-      ...userData,
-      uid: user.uid || `user_${Date.now()}`,
-      firstName: userData?.firstName || "Valentina",
-      lastName: userData?.lastName || "Gómez",
-      email: user.email || "valentina@correo.com",
-      role: userData?.role || "vendedor",
-      username: userData?.username || "@valengomez",
+      uid: user.uid,
+      email: user.email,
+      isTemp: userData?.isTemp || false,
+      // Nombre: Firestore → displayName de Firebase → parte del email
+      firstName: userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email.split("@")[0],
+      lastName: userData?.lastName || (user.displayName ? user.displayName.split(" ").slice(1).join(" ") : "") || "",
+      role: userData?.role || "cliente",
+      username: userData?.username || `@${(userData?.firstName || user.email.split("@")[0]).toLowerCase().replace(/\s+/g, "")}`,
       photoURL: savedAvatar || userData?.photoURL || user.photoURL || "img/register_panel.png"
     };
+
+    // Mostrar el contenido ahora que la sesión está verificada
+    document.querySelector(".app-container").style.visibility = "visible";
 
     updateUIWithUser(currentUser);
     listenToNotifications();
@@ -147,6 +155,21 @@ function updateUIWithUser(user) {
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
   const avatarUrl = user.photoURL || "img/register_panel.png";
   
+  // Ocultar botón "Iniciar sesión" y mostrar "Cerrar sesión" en el sidebar
+  const btnLogin = document.getElementById("btnLoginSidebar");
+  const btnLogout = document.getElementById("btnLogoutSidebar");
+  if (btnLogin) btnLogin.style.display = "none";
+  if (btnLogout) btnLogout.style.display = "flex";
+const sidebarUserInfo = document.getElementById("sidebarUserInfo");
+  const sidebarAvatar = document.getElementById("sidebarUserAvatar");
+  const sidebarName = document.getElementById("sidebarUserName");
+  const sidebarRole = document.getElementById("sidebarUserRole");
+
+  if (sidebarUserInfo) sidebarUserInfo.style.display = "flex";
+  if (sidebarAvatar) sidebarAvatar.src = avatarUrl;
+  if (sidebarName) sidebarName.textContent = fullName;
+  if (sidebarRole) sidebarRole.textContent = (user.role || "vendedor").toUpperCase();
+
   // Header
   const headerGreeting = document.getElementById("headerGreeting");
   if (headerGreeting) headerGreeting.textContent = `¡Hola, ${user.firstName || 'Usuario'}! 👋`;
@@ -695,7 +718,7 @@ function initPurchaseModal() {
 
     const qty = parseInt(qtyInput.value) || 1;
     priceInput.value = `$${prod.price.toLocaleString("es-CO")}`;
-    sellerInput.value = prod.sellerName || "Valentina Gómez";
+    sellerInput.value = prod.sellerName || "Vendedor PayNex";
     const total = prod.price * qty;
     totalText.textContent = `$${total.toLocaleString("es-CO")} COP`;
   };
@@ -765,8 +788,8 @@ async function executePurchase({ productId, quantity, buyerName }) {
     buyerName: buyerName,
     buyerEmail: currentUser?.email || "comprador@correo.com",
     sellerId: sellerId,
-    sellerName: prod.sellerName || "Valentina Gómez",
-    sellerEmail: "valentina@correo.com",
+    sellerName: prod.sellerName || (currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : "Vendedor PayNex"),
+    sellerEmail: currentUser?.email || "soporte@paynex.com",
     price: prod.price,
     quantity: quantity,
     totalAmount: total,
@@ -1201,7 +1224,7 @@ function initProductModal() {
           status: "Activo",
           image,
           sellerId: currentUser?.uid || "seller_default",
-          sellerName: currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() : "Valentina Gómez"
+          sellerName: currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email : "Vendedor PayNex"
         };
         userProducts.unshift(newProd);
       }
