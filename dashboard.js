@@ -133,6 +133,7 @@ function initAuthState() {
 
     updateUIWithUser(currentUser);
     listenToNotifications();
+    listenToOrders();
     loadUsersForChat();
   });
 
@@ -356,6 +357,29 @@ function listenToNotifications() {
   }
 }
 
+function listenToOrders() {
+  try {
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(50));
+    onSnapshot(q, (snapshot) => {
+      const list = [];
+      snapshot.forEach(docSnap => {
+        list.push({ ...docSnap.data(), firestoreDocId: docSnap.id });
+      });
+      if (list.length > 0) {
+        userOrders = list;
+        localStorage.setItem("paynex_orders", JSON.stringify(userOrders));
+        renderOrders();
+      }
+    }, (err) => {
+      console.warn("Firestore órdenes en modo offline:", err);
+      renderOrders();
+    });
+  } catch (err) {
+    console.warn("Error suscribiendo a órdenes:", err);
+    renderOrders();
+  }
+}
+
 export async function createNotification({ userId, type, title, message, orderId = null }) {
   const notif = {
     userId: userId || "all",
@@ -475,7 +499,16 @@ function showToast(title, message, type = "purchase") {
 
 function formatRelativeTime(timestamp) {
   if (!timestamp) return "Hace un momento";
-  const diff = Date.now() - timestamp;
+  let timeVal = timestamp;
+  if (typeof timestamp === "object" && timestamp !== null) {
+    if (typeof timestamp.toMillis === "function") {
+      timeVal = timestamp.toMillis();
+    } else if (timestamp.seconds) {
+      timeVal = timestamp.seconds * 1000;
+    }
+  }
+  const diff = Date.now() - Number(timeVal);
+  if (isNaN(diff)) return "Hace un momento";
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "Ahora mismo";
   if (minutes < 60) return `Hace ${minutes} min`;
@@ -540,7 +573,7 @@ function renderOrders() {
           </td>
           <td>
             <div style="display: flex; gap: 6px; align-items: center;">
-              <select id="selectStatus-${ord.id}" class="order-status-select">
+              <select id="selectStatus-${ord.id}" class="order-status-select" onchange="updateOrderStatus('${ord.id}', this.value)">
                 <option value="Pendiente" ${ord.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                 <option value="En preparación" ${ord.status === 'En preparación' ? 'selected' : ''}>En preparación</option>
                 <option value="Enviado" ${ord.status === 'Enviado' ? 'selected' : ''}>Enviado</option>
@@ -598,17 +631,17 @@ function getStatusBadgeClass(status) {
 }
 
 // Actualizar estado de pedido y disparar notificación al comprador
-window.updateOrderStatus = async function(orderId) {
+window.updateOrderStatus = async function(orderId, directStatus = null) {
   const selectEl = document.getElementById(`selectStatus-${orderId}`);
-  if (!selectEl) return;
-  const newStatus = selectEl.value;
+  const newStatus = directStatus || (selectEl ? selectEl.value : null);
+  if (!newStatus) return;
 
   const orderIndex = userOrders.findIndex(o => o.id === orderId);
   if (orderIndex === -1) return;
 
   const order = userOrders[orderIndex];
   const oldStatus = order.status;
-  if (oldStatus === newStatus) {
+  if (oldStatus === newStatus && !directStatus) {
     alert("El pedido ya se encuentra en estado: " + newStatus);
     return;
   }
@@ -637,7 +670,7 @@ window.updateOrderStatus = async function(orderId) {
   });
 
   renderOrders();
-  alert(`¡Estado del pedido #${orderId} actualizado a "${newStatus}" con éxito!\nSe envió la notificación correspondiente al comprador.`);
+  showToast("Pedido Actualizado", `El pedido #${orderId} ahora está: ${newStatus}`, "order_status");
 };
 
 // ================= 6. MODAL Y EJECUCIÓN DE COMPRAS =================
@@ -656,8 +689,8 @@ function initPurchaseModal() {
   const buyerInput = document.getElementById("purchaseBuyerName");
 
   const updateCalculations = () => {
-    const selectedId = parseInt(productSelect.value);
-    const prod = userProducts.find(p => p.id === selectedId);
+    const selectedId = productSelect.value;
+    const prod = userProducts.find(p => p.id == selectedId);
     if (!prod) return;
 
     const qty = parseInt(qtyInput.value) || 1;
@@ -687,6 +720,7 @@ function initPurchaseModal() {
   const closeModal = () => modal.classList.remove("active");
   if (btnClose) btnClose.addEventListener("click", closeModal);
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
   if (productSelect) productSelect.addEventListener("change", updateCalculations);
   if (qtyInput) qtyInput.addEventListener("input", updateCalculations);
@@ -694,7 +728,7 @@ function initPurchaseModal() {
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const prodId = parseInt(productSelect.value);
+      const prodId = productSelect.value;
       const qty = parseInt(qtyInput.value) || 1;
       const buyerName = buyerInput.value.trim() || "Comprador";
 
@@ -705,7 +739,7 @@ function initPurchaseModal() {
 }
 
 async function executePurchase({ productId, quantity, buyerName }) {
-  const prod = userProducts.find(p => p.id === productId);
+  const prod = userProducts.find(p => p.id == productId);
   if (!prod) return;
 
   if (prod.stock < quantity) {
@@ -852,7 +886,9 @@ async function loadUsersForChat() {
     });
 
     if (registeredUsers.length > 0) {
-      chatContacts = [...DEFAULT_CONTACTS, ...registeredUsers];
+      const existingIds = new Set(DEFAULT_CONTACTS.map(c => c.id));
+      const uniqueUsers = registeredUsers.filter(u => !existingIds.has(u.id));
+      chatContacts = [...DEFAULT_CONTACTS, ...uniqueUsers];
       renderChatContacts(chatContacts);
     }
   } catch (err) {
@@ -863,6 +899,12 @@ async function loadUsersForChat() {
 function renderChatContacts(contactsToRender) {
   const listEl = document.getElementById("chatContactsList");
   if (!listEl) return;
+
+  const navBadge = document.getElementById("unreadMessagesNavBadge");
+  if (navBadge) {
+    navBadge.textContent = contactsToRender.length;
+    navBadge.style.display = contactsToRender.length > 0 ? "inline-block" : "none";
+  }
 
   listEl.innerHTML = contactsToRender.map(c => {
     const isActive = currentChatContact && currentChatContact.id === c.id;
@@ -1006,7 +1048,15 @@ function renderChatMessages(messages) {
 
   container.innerHTML = messages.map(msg => {
     const isOutgoing = msg.senderId === myId;
-    const time = new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let timeVal = msg.createdAt;
+    if (typeof timeVal === "object" && timeVal !== null) {
+      if (typeof timeVal.toMillis === "function") {
+        timeVal = timeVal.toMillis();
+      } else if (timeVal.seconds) {
+        timeVal = timeVal.seconds * 1000;
+      }
+    }
+    const time = new Date(timeVal || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return `
       <div class="chat-bubble-row ${isOutgoing ? 'outgoing' : 'incoming'}">
@@ -1126,6 +1176,7 @@ function initProductModal() {
   const closeModal = () => modal.classList.remove("active");
   if (btnClose) btnClose.addEventListener("click", closeModal);
   if (btnCancel) btnCancel.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 
   if (productForm) {
     productForm.addEventListener("submit", (e) => {
