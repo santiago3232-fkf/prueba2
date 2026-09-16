@@ -1,102 +1,32 @@
 import { checkAuthState, logoutUser } from "./auth.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const sidebar = document.getElementById("mainSidebar");
-  const btnLogout = document.getElementById("btnLogoutSidebar");
-  const btnLogin = document.getElementById("btnLoginSidebar");
-  const userInfo = document.getElementById("sidebarUserInfo");
-  const userAvatar = document.getElementById("sidebarUserAvatar");
-  const userName = document.getElementById("sidebarUserName");
-  const userRole = document.getElementById("sidebarUserRole");
-  const navLoginLink = document.getElementById("navLoginLink");
-  const toggleButtons = document.querySelectorAll(".toggle-sidebar-action");
-  const backdrop = document.getElementById("sidebarBackdrop");
+  const btnLandingLogin = document.getElementById("btnLandingLogin");
+  const btnLandingRegister = document.getElementById("btnLandingRegister");
+  const loggedInChip = document.getElementById("loggedInChip");
+  const landingUserAvatar = document.getElementById("landingUserAvatar");
+  const landingUserName = document.getElementById("landingUserName");
 
-  // Función para alternar el menú lateral
-  const toggleSidebar = (forceState) => {
-    const shouldOpen = typeof forceState === "boolean" 
-      ? forceState 
-      : !document.body.classList.contains("sidebar-open");
-    
-    if (shouldOpen) {
-      document.body.classList.add("sidebar-open");
-    } else {
-      document.body.classList.remove("sidebar-open");
-    }
-
-    const navBtnText = document.querySelector("#btnToggleSidebar span");
-    if (navBtnText) {
-      navBtnText.textContent = shouldOpen ? "Ocultar Menú" : "Menú PayNex";
-    }
-  };
-
-  // Asociar botones para abrir/cerrar sidebar
-  toggleButtons.forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      toggleSidebar();
-    });
-  });
-
-  // Cerrar al hacer clic en el backdrop en móviles
-  if (backdrop) {
-    backdrop.addEventListener("click", () => {
-      toggleSidebar(false);
-    });
-  }
-
-  // Cerrar sesión
-  if (btnLogout) {
-    btnLogout.addEventListener("click", (e) => {
-      e.preventDefault();
-      logoutUser();
-    });
-  }
-
-  // Comprobar estado de autenticación
+  // Comprobar estado de autenticación en la Landing Page
   checkAuthState((user, userData) => {
     if (user) {
-      // USUARIO LOGUEADO:
-      document.body.classList.add("sidebar-open");
-      document.body.classList.add("is-logged-in");
+      // Usuario autenticado: mostrar chip de acceso directo al Dashboard
+      const firstName = userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email?.split("@")[0] || "Mi Panel";
+      const photo = localStorage.getItem(`paynex_avatar_${user.email}`) || userData?.photoURL || user.photoURL || "img/register_panel.png";
 
-      const navBtnText = document.querySelector("#btnToggleSidebar span");
-      if (navBtnText) navBtnText.textContent = "Ocultar Menú";
-
-      // Nombre desde Firestore (userData) con fallback a Firebase Auth
-      const firstName = userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email?.split("@")[0] || "Usuario";
-      const lastName  = userData?.lastName  || (user.displayName ? user.displayName.split(" ").slice(1).join(" ") : "") || "";
-      const fullName  = `${firstName} ${lastName}`.trim();
-      const role      = (userData?.role || "cliente").toUpperCase();
-      const photo     = localStorage.getItem(`paynex_avatar_${user.email}`) || userData?.photoURL || user.photoURL || "img/register_panel.png";
-
-      if (userName)   userName.textContent  = fullName;
-      if (userRole)   userRole.textContent   = role;
-      if (userAvatar) userAvatar.src         = photo;
-      if (userInfo)   userInfo.style.display = "flex";
-
-      if (btnLogin)  btnLogin.style.display  = "none";
-      if (btnLogout) btnLogout.style.display = "flex";
-
-      if (navLoginLink) {
-        navLoginLink.innerHTML = `📊 Panel Dashboard (${firstName})`;
-        navLoginLink.href = "dashboard.html";
-        navLoginLink.style.color = "#64ffda";
+      if (btnLandingLogin) btnLandingLogin.style.display = "none";
+      if (btnLandingRegister) btnLandingRegister.style.display = "none";
+      
+      if (loggedInChip) {
+        loggedInChip.style.display = "flex";
+        if (landingUserName) landingUserName.textContent = `Panel (${firstName})`;
+        if (landingUserAvatar) landingUserAvatar.src = photo;
       }
     } else {
-      // USUARIO NO LOGUEADO:
-      document.body.classList.remove("is-logged-in");
-      document.body.classList.remove("sidebar-open");
-
-      if (userInfo)   userInfo.style.display  = "none";
-      if (btnLogin)   btnLogin.style.display   = "flex";
-      if (btnLogout)  btnLogout.style.display  = "none";
-
-      if (navLoginLink) {
-        navLoginLink.innerHTML = "Mi Cuenta / Login";
-        navLoginLink.href = "login.html";
-        navLoginLink.style.color = "#ffeb3b";
-      }
+      // Usuario no autenticado: mostrar botones de Iniciar sesión y Registrarse
+      if (btnLandingLogin) btnLandingLogin.style.display = "inline-flex";
+      if (btnLandingRegister) btnLandingRegister.style.display = "inline-flex";
+      if (loggedInChip) loggedInChip.style.display = "none";
     }
   });
 });
