@@ -3,12 +3,14 @@ import {
   db, 
   doc, 
   setDoc,
+  writeBatch,
   updateDoc, 
   deleteDoc,
   serverTimestamp,
   collection, 
   addDoc, 
   getDocs,
+  getDoc,
   query,
   where
 } from "./firebase-confi.js";
@@ -17,6 +19,8 @@ import {
 let currentUser = null;
 let currentUserData = null;
 let products = [];
+let orders = [];
+let withdrawals = [];
 let cart = [];
 let favorites = [];
 let currentCategoryFilter = "all";
@@ -210,6 +214,10 @@ function initAuth() {
     loadProducts().catch(error => {
       console.error("No se pudo cargar el catálogo de Firestore:", error);
       showToast("No fue posible cargar el catálogo. Intenta de nuevo más tarde.");
+    });
+    loadCommerceData().catch(error => {
+      console.error("No se pudieron cargar los pedidos o retiros simulados:", error);
+      showToast("No se pudo cargar el historial comercial. Actualiza la página e inténtalo de nuevo.");
     });
   }, error => {
     console.error("No se pudo verificar el perfil para el panel:", error);
@@ -659,25 +667,167 @@ function initCartDrawer() {
   if (overlay) overlay.addEventListener("click", closeCartDrawer);
 
   if (btnCheckout) {
-    btnCheckout.addEventListener("click", () => {
-      showToast("Las compras están deshabilitadas hasta integrar un proveedor de pagos seguro.");
-    });
+    btnCheckout.addEventListener("click", simulatePurchase);
   }
 }
 
 // ================= 6. VISTA COMPRADOR: MIS COMPRAS =================
+function orderDate(value) {
+  const date = value?.toDate ? value.toDate() : value instanceof Date ? value : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString("es-CO")
+    : "Fecha no disponible";
+}
+
+function orderStatusClass(status) {
+  if (status === "Entregado") return "delivered";
+  if (status === "Enviado") return "sent";
+  return "pending";
+}
+
+async function loadCommerceData() {
+  const [buyerOrders, sellerOrders] = await Promise.all([
+    getDocs(query(collection(db, "orders"), where("buyerId", "==", currentUser.uid))),
+    getDocs(query(collection(db, "orders"), where("sellerId", "==", currentUser.uid)))
+  ]);
+  const orderById = new Map();
+  [...buyerOrders.docs, ...sellerOrders.docs].forEach(snapshot => {
+    orderById.set(snapshot.id, { id: snapshot.id, ...snapshot.data() });
+  });
+  orders = [...orderById.values()];
+
+  if (currentUserData?.role === "vendedor") {
+    const withdrawalSnapshots = await getDocs(query(
+      collection(db, "withdrawals"),
+      where("sellerId", "==", currentUser.uid)
+    ));
+    withdrawals = withdrawalSnapshots.docs.map(snapshot => ({
+      id: snapshot.id,
+      ...snapshot.data()
+    }));
+  }
+
+  renderBuyerOrders();
+  renderSellerDashboard();
+}
+
+async function simulatePurchase() {
+  const button = document.getElementById("btnCheckoutCart");
+  if (!currentUser || cart.length === 0) {
+    showToast("Agrega al menos un producto disponible antes de simular la compra.");
+    return;
+  }
+  if (cart.length > 20) {
+    showToast("La compra de prueba admite hasta 20 productos distintos por pedido.");
+    return;
+  }
+  if (button) button.disabled = true;
+
+  try {
+    const batch = writeBatch(db);
+    const buyerName = `${currentUserData?.firstName || ""} ${currentUserData?.lastName || ""}`.trim()
+      || currentUser.email?.split("@")[0]
+      || "Comprador";
+    const orderRefs = [];
+
+    for (const cartItem of cart) {
+      if (!Number.isInteger(cartItem.quantity) || cartItem.quantity < 1 || cartItem.quantity > 100) {
+        throw new Error("Cantidad inválida en el carrito.");
+      }
+      const productSnapshot = await getDoc(doc(db, "products", cartItem.id));
+      if (!productSnapshot.exists()) {
+        throw new Error("Uno de los productos ya no está disponible.");
+      }
+      const product = { id: productSnapshot.id, ...productSnapshot.data() };
+      if (!isValidProduct(product.id, product) || product.stock < cartItem.quantity) {
+        throw new Error(`No hay inventario suficiente de ${product.name || "un producto"}.`);
+      }
+      if (product.sellerId === currentUser.uid) {
+        throw new Error("No puedes simular la compra de tu propio producto.");
+      }
+      const total = product.price * cartItem.quantity;
+      if (!Number.isSafeInteger(total)) throw new Error("El total del carrito no es válido.");
+
+      const orderRef = doc(collection(db, "orders"));
+      orderRefs.push({
+        id: orderRef.id,
+        sellerId: product.sellerId,
+        sellerName: product.sellerName,
+        productName: product.name,
+        quantity: cartItem.quantity,
+        total
+      });
+      batch.set(orderRef, {
+        buyerId: currentUser.uid,
+        buyerName: buyerName.slice(0, 120),
+        sellerId: product.sellerId,
+        sellerName: product.sellerName,
+        productId: product.id,
+        productName: product.name,
+        image: product.image,
+        quantity: cartItem.quantity,
+        unitPrice: product.price,
+        total,
+        status: "Pendiente de envío",
+        simulation: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    await batch.commit();
+    orders = [
+      ...orderRefs.map(order => ({
+        ...order,
+        buyerId: currentUser.uid,
+        status: "Pendiente de envío",
+        simulation: true,
+        createdAt: new Date()
+      })),
+      ...orders
+    ];
+    cart = [];
+    saveUserStorage("cart", cart);
+    renderCart();
+    renderBuyerOrders();
+    renderSellerDashboard();
+    window.closeCartDrawer?.();
+    showToast("Compra de prueba registrada. No se realizó ningún cobro ni se reservó inventario.");
+  } catch (error) {
+    console.error("No se pudo registrar la compra simulada:", error);
+    showToast(error.code === "permission-denied"
+      ? "Firestore rechazó el pedido. Publica las reglas actuales de firestore.rules."
+      : error.message || "No se pudo registrar la compra de prueba.");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 function renderBuyerOrders() {
   const tbody = document.getElementById("buyerOrdersTableBody");
   const countEl = document.getElementById("buyerTotalPurchasesCount");
   const inTransitEl = document.getElementById("buyerInTransitCount");
   const deliveredEl = document.getElementById("buyerDeliveredCount");
 
-  if (countEl) countEl.textContent = "No disponible";
-  if (inTransitEl) inTransitEl.textContent = "No disponible";
-  if (deliveredEl) deliveredEl.textContent = "No disponible";
-
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">El historial de compras no está disponible hasta integrar pedidos y pagos verificados.</td></tr>`;
+  const buyerOrders = orders
+    .filter(order => order.buyerId === currentUser?.uid)
+    .sort((a, b) => (b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || 0)
+      - (a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || 0));
+  if (countEl) countEl.textContent = String(buyerOrders.length);
+  if (inTransitEl) inTransitEl.textContent = String(buyerOrders.filter(order => order.status === "Enviado").length);
+  if (deliveredEl) deliveredEl.textContent = String(buyerOrders.filter(order => order.status === "Entregado").length);
+  tbody.innerHTML = buyerOrders.length ? buyerOrders.map(order => `
+    <tr>
+      <td>${escapeHTML(order.id.slice(0, 8).toUpperCase())}</td>
+      <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
+      <td>${escapeHTML(order.sellerName)}</td>
+      <td>$ ${Number(order.total).toLocaleString("es-CO")}</td>
+      <td>${orderDate(order.createdAt)}</td>
+      <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span></td>
+      <td><span class="status-badge pending">Simulación</span></td>
+    </tr>
+  `).join("") : `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Aún no tienes compras simuladas.</td></tr>`;
 }
 
 // ================= 7. VISTA VENDEDOR: MIS VENTAS & FINANZAS =================
@@ -688,10 +838,22 @@ function renderSellerDashboard() {
   const financeBalanceEl = document.getElementById("financeBalanceAmount");
 
   const ownProducts = currentUser ? products.filter(product => product.sellerId === currentUser.uid) : [];
-  if (totalSalesEl) totalSalesEl.textContent = "No disponible";
+  const sellerOrders = orders
+    .filter(order => order.sellerId === currentUser?.uid)
+    .sort((a, b) => (b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || 0)
+      - (a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || 0));
+  const deliveredTotal = sellerOrders
+    .filter(order => order.status === "Entregado")
+    .reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const withdrawnTotal = withdrawals.reduce((sum, withdrawal) => sum + Number(withdrawal.amount || 0), 0);
+  const availableBalance = Math.max(0, deliveredTotal - withdrawnTotal);
+  const formatMoney = value => `$ ${value.toLocaleString("es-CO")}`;
+  if (totalSalesEl) totalSalesEl.textContent = formatMoney(sellerOrders.reduce((sum, order) => sum + Number(order.total || 0), 0));
   if (activeProductsEl) activeProductsEl.textContent = ownProducts.length;
-  if (balanceEl) balanceEl.textContent = "No disponible";
-  if (financeBalanceEl) financeBalanceEl.textContent = "No disponible";
+  if (balanceEl) balanceEl.textContent = formatMoney(availableBalance);
+  if (financeBalanceEl) financeBalanceEl.textContent = formatMoney(availableBalance);
+  const shippedOrdersEl = document.getElementById("kpiShippedOrders");
+  if (shippedOrdersEl) shippedOrdersEl.textContent = String(sellerOrders.filter(order => order.status === "Enviado").length);
 
   const prodTbody = document.getElementById("sellerProductsTableBody");
   if (prodTbody) {
@@ -724,18 +886,80 @@ function renderSellerDashboard() {
 
   const ordersTbody = document.getElementById("sellerReceivedOrdersTableBody");
   if (ordersTbody) {
-    ordersTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;">No hay pedidos confirmados.</td></tr>`;
+    ordersTbody.innerHTML = sellerOrders.length ? sellerOrders.map(order => {
+      const nextStatuses = {
+        "Pendiente de envío": ["Preparando"],
+        "Preparando": ["Enviado"],
+        "Enviado": ["Entregado"],
+        "Entregado": []
+      }[order.status] || [];
+      return `
+        <tr>
+          <td>${escapeHTML(order.id.slice(0, 8).toUpperCase())}</td>
+          <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
+          <td>${escapeHTML(order.buyerName)}</td>
+          <td>$ ${Number(order.total).toLocaleString("es-CO")}</td>
+          <td>${orderDate(order.createdAt)}</td>
+          <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span></td>
+          <td>${nextStatuses.length ? `
+            <select class="input-custom" data-order-next-status="${escapeHTML(order.id)}">
+              ${nextStatuses.map(status => `<option value="${status}">${status}</option>`).join("")}
+            </select>
+            <button type="button" class="btn-primary-action" data-order-update="${escapeHTML(order.id)}" style="margin-top:6px;">Actualizar</button>
+          ` : `<span>Finalizado</span>`}</td>
+        </tr>
+      `;
+    }).join("") : `<tr><td colspan="7" style="text-align:center;padding:24px;">Aún no tienes pedidos de prueba.</td></tr>`;
+    ordersTbody.querySelectorAll("[data-order-update]").forEach(button => {
+      button.addEventListener("click", () => {
+        const orderId = button.dataset.orderUpdate;
+        const select = button.closest("tr")?.querySelector("[data-order-next-status]");
+        if (select) window.updateSellerOrderStatus(orderId, select.value);
+      });
+    });
   }
 
   const txList = document.getElementById("transactionsListWrap");
   if (txList) {
-    txList.innerHTML = `<p style="color:var(--text-muted);">Los pagos y movimientos aún no están habilitados.</p>`;
+    txList.innerHTML = withdrawals.length ? withdrawals
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+      .map(withdrawal => `
+        <div class="notif-item">
+          <strong>Retiro simulado a Nequi · $ ${Number(withdrawal.amount).toLocaleString("es-CO")}</strong>
+          <span>Celular terminado en ${escapeHTML(withdrawal.accountLast4)} · ${orderDate(withdrawal.createdAt)} · No se transfirió dinero.</span>
+        </div>
+      `).join("")
+      : `<p style="color:var(--text-muted);">Aún no hay retiros de prueba.</p>`;
   }
 }
 
-window.updateSellerOrderStatus = function(orderId, newStatus) {
-  console.warn("No se pueden actualizar pedidos: el flujo de pedidos todavía no está habilitado.", orderId, newStatus);
-  showToast("La gestión de pedidos aún no está habilitada.");
+window.updateSellerOrderStatus = async function(orderId, newStatus) {
+  const order = orders.find(item => item.id === orderId && item.sellerId === currentUser?.uid);
+  const allowedNextStatus = {
+    "Pendiente de envío": "Preparando",
+    "Preparando": "Enviado",
+    "Enviado": "Entregado"
+  }[order?.status];
+  if (!order || newStatus !== allowedNextStatus) {
+    showToast("No se puede aplicar ese cambio de estado.");
+    return;
+  }
+  try {
+    await updateDoc(doc(db, "orders", orderId), {
+      status: newStatus,
+      updatedAt: serverTimestamp()
+    });
+    order.status = newStatus;
+    order.updatedAt = new Date();
+    renderBuyerOrders();
+    renderSellerDashboard();
+    showToast(`Estado del envío actualizado: ${newStatus}.`);
+  } catch (error) {
+    console.error("No se pudo actualizar el estado del pedido:", error);
+    showToast(error.code === "permission-denied"
+      ? "Firestore rechazó el cambio. Publica las reglas actuales de firestore.rules."
+      : "No se pudo actualizar el envío. Revisa la conexión e inténtalo de nuevo.");
+  }
 };
 
 window.deleteProduct = async function(prodId) {
@@ -766,9 +990,51 @@ function initWithdrawForm() {
   const form = document.getElementById("financeWithdrawForm");
   if (!form) return;
 
-  form.addEventListener("submit", e => {
+  form.addEventListener("submit", async e => {
     e.preventDefault();
-    showToast("Los retiros no están habilitados: falta integrar un procesador de pagos y validación del servidor.");
+    if (currentUserData?.role !== "vendedor" || !currentUser) {
+      showToast("Solo los vendedores pueden simular retiros.");
+      return;
+    }
+    const account = document.getElementById("withdrawAccountInput").value.trim();
+    const amount = Number(document.getElementById("withdrawAmountInput").value);
+    const deliveredTotal = orders
+      .filter(order => order.sellerId === currentUser.uid && order.status === "Entregado")
+      .reduce((sum, order) => sum + Number(order.total || 0), 0);
+    const availableBalance = Math.max(0, deliveredTotal
+      - withdrawals.reduce((sum, withdrawal) => sum + Number(withdrawal.amount || 0), 0));
+    if (!/^\d{10}$/.test(account) || !Number.isSafeInteger(amount) || amount < 10000
+      || amount > availableBalance) {
+      showToast(amount > availableBalance
+        ? "El monto supera el saldo simulado disponible."
+        : "Ingresa un celular Nequi de 10 dígitos y un monto válido (mínimo $10.000).");
+      return;
+    }
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    try {
+      const withdrawal = {
+        sellerId: currentUser.uid,
+        amount,
+        method: "Nequi",
+        accountLast4: account.slice(-4),
+        status: "Simulado",
+        simulation: true,
+        createdAt: serverTimestamp()
+      };
+      const withdrawalRef = await addDoc(collection(db, "withdrawals"), withdrawal);
+      withdrawals = [{ ...withdrawal, id: withdrawalRef.id, createdAt: new Date() }, ...withdrawals];
+      form.reset();
+      renderSellerDashboard();
+      showToast("Retiro de prueba registrado. No se envió dinero a Nequi.");
+    } catch (error) {
+      console.error("No se pudo registrar el retiro simulado:", error);
+      showToast(error.code === "permission-denied"
+        ? "Firestore rechazó el retiro. Publica las reglas actuales de firestore.rules."
+        : "No se pudo registrar el retiro de prueba. Inténtalo de nuevo.");
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 }
 

@@ -134,8 +134,8 @@
               </div>
               <div class="notif-list" id="notifListContainer">
                 <div class="notif-item">
-                  <strong>Notificaciones no disponibles</strong>
-                  <span>El servicio de pedidos todavía no está habilitado.</span>
+                  <strong>Pedidos de prueba</strong>
+                  <span>Las compras y los envíos se registran como simulación.</span>
                 </div>
               </div>
             </div>
@@ -381,7 +381,7 @@
         <div class="section-header-row" style="margin-bottom: 20px;">
           <div>
             <h2>Mis Compras</h2>
-            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Los pedidos y su historial estarán disponibles cuando se integre el procesamiento de pagos.</p>
+            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Historial de compras simuladas. No se realizan cobros ni envíos reales.</p>
           </div>
           </div>
 
@@ -410,7 +410,7 @@
                 <th>Monto Total</th>
                 <th>Fecha</th>
                 <th>Estado</th>
-                <th>Acción</th>
+                <th>Detalle</th>
               </tr>
             </thead>
             <tbody id="buyerOrdersTableBody">
@@ -425,7 +425,7 @@
         <div class="section-header-row" style="margin-bottom: 16px;">
           <div>
             <h2>Panel de Mis Ventas</h2>
-            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Gestiona tus publicaciones. Los pedidos y retiros aún no están disponibles.</p>
+            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Gestiona publicaciones, pedidos simulados y retiros de prueba.</p>
           </div>
           <button type="button" class="btn-primary-action" id="btnOpenAddProduct">
             <span>➕ Publicar Nuevo Producto</span>
@@ -445,11 +445,11 @@
           <div class="seller-kpis-grid">
             <div class="kpi-card">
               <div class="kpi-header">
-                <span class="kpi-title">Ventas Totales</span>
+                <span class="kpi-title">Ventas simuladas</span>
                 <span class="kpi-icon-pill" style="background:#ede9fe; color:#7c3aed;">💰</span>
               </div>
               <div class="kpi-value" id="kpiTotalSales">No disponible</div>
-              <div class="kpi-subtext">Los pagos aún no están habilitados</div>
+              <div class="kpi-subtext">No representa dinero recibido</div>
             </div>
 
             <div class="kpi-card">
@@ -463,16 +463,16 @@
 
             <div class="kpi-card">
               <div class="kpi-header">
-                <span class="kpi-title">Pedidos Enviados</span>
+                <span class="kpi-title">Pedidos enviados</span>
                 <span class="kpi-icon-pill" style="background:#fef3c7; color:#d97706;">🛍️</span>
               </div>
               <div class="kpi-value" id="kpiShippedOrders">No disponible</div>
-              <div class="kpi-subtext" style="color:#64748b;">Los pedidos aún no están habilitados</div>
+              <div class="kpi-subtext" style="color:#64748b;">Estado de envío actualizado por el vendedor</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-header">
-                <span class="kpi-title">Saldo Disponible</span>
+                <span class="kpi-title">Saldo simulado disponible</span>
                 <span class="kpi-icon-pill" style="background:#dcfce7; color:#10b981;">💵</span>
               </div>
               <div class="kpi-value" id="kpiAvailableBalance">No disponible</div>
@@ -482,7 +482,7 @@
 
           <div class="card-table-panel" style="margin-bottom: 24px;">
             <strong style="font-size: 16px;">Ventas y pedidos</strong>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Estarán disponibles cuando PayNex integre pagos, órdenes y validación del servidor.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Las compras son simulaciones: no se cobran, no reservan inventario y no se contratan envíos reales.</p>
           </div>
         </div>
 
@@ -535,35 +535,26 @@
             <!-- Formulario de Retiro -->
             <div class="card-table-panel">
               <div class="balance-card-gradient">
-                <div style="font-size: 13px; opacity: 0.9;">Saldo</div>
+                <div style="font-size: 13px; opacity: 0.9;">Saldo simulado</div>
                 <div style="font-size: 32px; font-weight: 800; margin-top: 4px;" id="financeBalanceAmount">No disponible</div>
               </div>
 
-              <h3 style="font-size: 16px; margin-bottom: 8px;">Retiros deshabilitados</h3>
-              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">No se solicitarán ni transferirán fondos desde esta versión.</p>
+              <h3 style="font-size: 16px; margin-bottom: 8px;">Simular retiro a Nequi</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">Prueba de interfaz: no se envía dinero ni se contacta a Nequi.</p>
               <form id="financeWithdrawForm">
-                <fieldset disabled style="border:0;padding:0;margin:0;">
+                <fieldset style="border:0;padding:0;margin:0;">
                 <div class="form-group-custom">
-                  <label>Método de Transferencia</label>
-                  <select id="withdrawMethodSelect" class="input-custom" required>
-                    <option value="nequi">📱 Nequi</option>
-                    <option value="bancolombia">🏦 Bancolombia</option>
-                    <option value="daviplata">📲 Daviplata</option>
-                  </select>
+                  <label for="withdrawAccountInput">Número de celular Nequi</label>
+                  <input type="tel" id="withdrawAccountInput" class="input-custom" placeholder="3001234567" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required>
                 </div>
 
                 <div class="form-group-custom">
-                  <label>Número de Cuenta o Celular</label>
-                  <input type="text" id="withdrawAccountInput" class="input-custom" placeholder="312 000 0000" required>
-                </div>
-
-                <div class="form-group-custom">
-                  <label>Monto a Retirar ($ COP)</label>
-                  <input type="number" id="withdrawAmountInput" class="input-custom" placeholder="50000" min="10000" required>
+                  <label for="withdrawAmountInput">Monto a simular ($ COP)</label>
+                  <input type="number" id="withdrawAmountInput" class="input-custom" placeholder="50000" min="10000" max="1000000000" step="1" required>
                 </div>
 
                 <button type="submit" class="btn-primary-action" style="width: 100%; justify-content: center; margin-top: 10px;">
-                  💸 Retiros no disponibles
+                  💸 Simular retiro a Nequi
                 </button>
                 </fieldset>
               </form>
@@ -629,7 +620,7 @@
           <h3 style="font-size: 18px; margin-bottom: 18px;">Configuración de la Cuenta</h3>
 
           <p style="color: var(--text-muted);">
-            Las notificaciones por correo, alertas de pedidos y seguimiento de envíos aún no están habilitados.
+            Las notificaciones por correo no están conectadas. Los pedidos y estados de envío visibles son simulaciones.
           </p>
 
           <div style="margin-top: 24px;">
@@ -668,9 +659,10 @@
         <span>Total a Pagar:</span>
         <strong id="cartTotalText">$0</strong>
       </div>
-      <button type="button" class="btn-checkout-cart" id="btnCheckoutCart" disabled>
-        <span>Compras no disponibles</span>
-        <span>🔒</span>
+      <p style="font-size:12px;color:#64748b;margin:10px 0;">Simulación: no se realizará ningún cobro ni envío real.</p>
+      <button type="button" class="btn-checkout-cart" id="btnCheckoutCart">
+        <span>Simular compra</span>
+        <span>🧪</span>
       </button>
     </div>
   </aside>

@@ -136,7 +136,61 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read, write: if false;
+      function validNewOrder(data) {
+        let product = get(/databases/$(database)/documents/products/$(data.productId)).data;
+        return data.keys().hasAll([
+            'buyerId', 'buyerName', 'sellerId', 'sellerName', 'productId',
+            'productName', 'image', 'quantity', 'unitPrice', 'total',
+            'status', 'simulation', 'createdAt', 'updatedAt'
+          ])
+          && data.keys().hasOnly([
+            'buyerId', 'buyerName', 'sellerId', 'sellerName', 'productId',
+            'productName', 'image', 'quantity', 'unitPrice', 'total',
+            'status', 'simulation', 'createdAt', 'updatedAt'
+          ])
+          && data.buyerId == request.auth.uid
+          && data.buyerName is string
+          && data.buyerName.size() > 0
+          && data.buyerName.size() <= 120
+          && data.sellerId is string
+          && data.sellerId != request.auth.uid
+          && data.sellerId == product.sellerId
+          && data.sellerName == product.sellerName
+          && data.productName == product.name
+          && data.image == product.image
+          && product.status == 'Activo'
+          && data.productId is string
+          && data.quantity is int
+          && data.quantity > 0
+          && data.quantity <= 100
+          && data.quantity <= product.stock
+          && data.unitPrice is int
+          && data.unitPrice == product.price
+          && data.total is int
+          && data.total == data.unitPrice * data.quantity
+          && data.total > 0
+          && data.status == 'Pendiente de envío'
+          && data.simulation == true
+          && data.createdAt is timestamp
+          && data.updatedAt is timestamp;
+      }
+
+      allow get, list: if signedIn()
+        && (resource.data.buyerId == request.auth.uid
+          || resource.data.sellerId == request.auth.uid);
+      allow create: if signedIn() && validNewOrder(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt'])
+        && request.resource.data.updatedAt is timestamp
+        && (resource.data.status == 'Pendiente de envío'
+            && request.resource.data.status == 'Preparando'
+          || resource.data.status == 'Preparando'
+            && request.resource.data.status == 'Enviado'
+          || resource.data.status == 'Enviado'
+            && request.resource.data.status == 'Entregado');
+      allow delete: if false;
     }
 
     match /transactions/{transactionId} {
@@ -144,7 +198,28 @@ service cloud.firestore {
     }
 
     match /withdrawals/{withdrawalId} {
-      allow read, write: if false;
+      allow get, list: if signedIn()
+        && resource.data.sellerId == request.auth.uid;
+      allow create: if sellerAccount()
+        && request.resource.data.keys().hasAll([
+          'sellerId', 'amount', 'method', 'accountLast4', 'status',
+          'simulation', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'sellerId', 'amount', 'method', 'accountLast4', 'status',
+          'simulation', 'createdAt'
+        ])
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.amount is int
+        && request.resource.data.amount >= 10000
+        && request.resource.data.amount <= 1000000000
+        && request.resource.data.method == 'Nequi'
+        && request.resource.data.accountLast4 is string
+        && request.resource.data.accountLast4.matches('^[0-9]{4}$')
+        && request.resource.data.status == 'Simulado'
+        && request.resource.data.simulation == true
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
     }
 
     match /{document=**} {
