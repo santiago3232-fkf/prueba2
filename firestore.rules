@@ -1,0 +1,154 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function sellerAccount() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendedor';
+    }
+
+    function validProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'email', 'firstName', 'lastName', 'username', 'role', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'firstName', 'lastName', 'username', 'role',
+          'createdAt', 'updatedAt', 'photoURL'
+        ])
+        && data.uid == request.auth.uid
+        && data.email == request.auth.token.email
+        && data.firstName is string
+        && data.firstName.size() > 0
+        && data.firstName.size() <= 80
+        && data.lastName is string
+        && data.lastName.size() <= 120
+        && data.username is string
+        && data.username.size() > 0
+        && data.username.size() <= 40
+        && data.role in ['cliente', 'vendedor']
+        && data.createdAt is timestamp;
+    }
+
+    function validProduct(data) {
+      return data.keys().hasAll([
+          'sellerId', 'sellerName', 'name', 'category', 'price', 'stock',
+          'image', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'sellerId', 'sellerName', 'name', 'category', 'price', 'stock',
+          'image', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.sellerId == request.auth.uid
+        && data.sellerName is string
+        && data.sellerName.size() > 0
+        && data.sellerName.size() <= 80
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.category in [
+          'Tecnología', 'Moda', 'Hogar', 'Belleza', 'Deportes',
+          'Accesorios', 'Juguetes'
+        ]
+        && data.price is int
+        && data.price > 0
+        && data.price <= 1000000000
+        && data.stock is int
+        && data.stock >= 0
+        && data.stock <= 100000
+        && data.image is string
+        && data.image.size() <= 2048
+        && (data.image.matches('^img/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$')
+          || data.image.matches('^https://.+$'))
+        && data.status == 'Activo'
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{uid} {
+      allow get: if owns(uid);
+      allow list: if false;
+      allow create: if owns(uid) && validProfile(request.resource.data);
+      allow update: if owns(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['firstName', 'lastName', 'username', 'photoURL', 'updatedAt'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.firstName.size() <= 80
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() <= 120
+        && request.resource.data.username is string
+        && request.resource.data.username.size() > 0
+        && request.resource.data.username.size() <= 40
+        && (!('photoURL' in request.resource.data)
+          || request.resource.data.photoURL is string
+            && request.resource.data.photoURL.size() <= 2048);
+      allow delete: if false;
+    }
+
+    match /products/{productId} {
+      allow get, list: if signedIn()
+        && (resource.data.status == 'Activo'
+          || resource.data.sellerId == request.auth.uid);
+      allow create: if sellerAccount()
+        && productId.matches('^[A-Za-z0-9_-]{1,64}$')
+        && validProduct(request.resource.data);
+      allow update: if sellerAccount()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.sellerId == resource.data.sellerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['sellerName', 'name', 'category', 'price', 'stock', 'image', 'updatedAt'])
+        && request.resource.data.sellerName is string
+        && request.resource.data.sellerName.size() > 0
+        && request.resource.data.sellerName.size() <= 80
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.category in [
+          'Tecnología', 'Moda', 'Hogar', 'Belleza', 'Deportes',
+          'Accesorios', 'Juguetes'
+        ]
+        && request.resource.data.price is int
+        && request.resource.data.price > 0
+        && request.resource.data.price <= 1000000000
+        && request.resource.data.stock is int
+        && request.resource.data.stock >= 0
+        && request.resource.data.stock <= 100000
+        && request.resource.data.image is string
+        && request.resource.data.image.size() <= 2048
+        && (request.resource.data.image.matches('^img/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$')
+          || request.resource.data.image.matches('^https://.+$'))
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if sellerAccount()
+        && resource.data.sellerId == request.auth.uid;
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /withdrawals/{withdrawalId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

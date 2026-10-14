@@ -2,160 +2,141 @@ import { checkAuthState, logoutUser } from "./auth.js";
 import { 
   db, 
   doc, 
-  getDoc, 
-  setDoc, 
+  setDoc,
   updateDoc, 
+  deleteDoc,
   serverTimestamp,
   collection, 
   addDoc, 
-  getDocs 
+  getDocs,
+  query,
+  where
 } from "./firebase-confi.js";
-
-// ================= PRODUCTOS POR DEFECTO (Mockup 2) =================
-const DEFAULT_PRODUCTS = [
-  {
-    id: 1,
-    name: "iPhone 15 Pro",
-    category: "Tecnología",
-    price: 1250000,
-    rating: 4.8,
-    reviews: 124,
-    badge: "Más vendido",
-    image: "img/p_iphone_hq.png",
-    stock: 12,
-    status: "Activo",
-    sellerName: "Santiago G."
-  },
-  {
-    id: 2,
-    name: "Tenis deportivos",
-    category: "Moda",
-    price: 180000,
-    rating: 4.7,
-    reviews: 98,
-    badge: null,
-    image: "img/p_tenis_hq.png",
-    stock: 25,
-    status: "Activo",
-    sellerName: "Santiago G."
-  },
-  {
-    id: 3,
-    name: "Smartwatch Serie 8",
-    category: "Tecnología",
-    price: 250000,
-    rating: 4.6,
-    reviews: 87,
-    badge: null,
-    image: "img/p_smartwatch_hq.png",
-    stock: 15,
-    status: "Activo",
-    sellerName: "Santiago G."
-  },
-  {
-    id: 4,
-    name: "Perfume L'Essence",
-    category: "Belleza",
-    price: 135000,
-    rating: 4.9,
-    reviews: 210,
-    badge: null,
-    image: "img/p_perfume_hq.png",
-    stock: 30,
-    status: "Activo",
-    sellerName: "Santiago G."
-  },
-  {
-    id: 5,
-    name: "Morral urbano",
-    category: "Accesorios",
-    price: 90000,
-    rating: 4.7,
-    reviews: 64,
-    badge: null,
-    image: "img/p_morral_hq.png",
-    stock: 18,
-    status: "Activo",
-    sellerName: "Santiago G."
-  }
-];
-
-// Compras iniciales del usuario como comprador (Mis compras)
-const INITIAL_BUYER_ORDERS = [
-  {
-    id: "ORD-9428",
-    productName: "Audífonos inalámbricos",
-    productImage: "img/mockup2_banner_3d_2x.png",
-    sellerName: "AudioStore Colombia",
-    amount: 120000,
-    date: "14 Sep 2026",
-    status: "Enviado"
-  },
-  {
-    id: "ORD-7612",
-    productName: "Tenis deportivos",
-    productImage: "img/p_tenis_hq.png",
-    sellerName: "Urban Style",
-    amount: 180000,
-    date: "08 Sep 2026",
-    status: "Entregado"
-  },
-  {
-    id: "ORD-5190",
-    productName: "Gorra Streetwear",
-    productImage: "img/p_morral_hq.png",
-    sellerName: "CapZone",
-    amount: 55000,
-    date: "02 Sep 2026",
-    status: "Entregado"
-  }
-];
-
-// Pedidos recibidos como vendedor (Mis ventas)
-const INITIAL_SELLER_ORDERS = [
-  {
-    id: "ORD-849201",
-    productName: "iPhone 15 Pro",
-    buyerName: "Carlos Ruiz",
-    amount: 1250000,
-    date: "Hoy, 10:30 AM",
-    status: "Pendiente"
-  },
-  {
-    id: "ORD-719302",
-    productName: "Smartwatch Serie 8",
-    buyerName: "Laura Herrera",
-    amount: 250000,
-    date: "Ayer, 04:15 PM",
-    status: "Enviado"
-  }
-];
-
-// Movimientos financieros iniciales
-const INITIAL_TRANSACTIONS = [
-  { id: 1, type: "income", title: "Venta: iPhone 15 Pro", date: "Hoy, 10:30 AM", amount: 1250000 },
-  { id: 2, type: "withdraw", title: "Retiro a Nequi (312***4567)", date: "12 Sep 2026", amount: -150000 },
-  { id: 3, type: "income", title: "Venta: Smartwatch Serie 8", date: "10 Sep 2026", amount: 250000 }
-];
 
 // ================= ESTADO GLOBAL =================
 let currentUser = null;
-let products = JSON.parse(localStorage.getItem("paynex_products")) || DEFAULT_PRODUCTS;
-let cart = JSON.parse(localStorage.getItem("paynex_cart")) || [
-  { id: 2, quantity: 1 },
-  { id: 5, quantity: 1 }
-];
-let favorites = JSON.parse(localStorage.getItem("paynex_favorites")) || [1];
-let buyerOrders = JSON.parse(localStorage.getItem("paynex_buyer_orders")) || INITIAL_BUYER_ORDERS;
-let sellerOrders = JSON.parse(localStorage.getItem("paynex_seller_orders")) || INITIAL_SELLER_ORDERS;
-let transactions = JSON.parse(localStorage.getItem("paynex_transactions")) || INITIAL_TRANSACTIONS;
-let availableBalance = parseFloat(localStorage.getItem("paynex_balance")) || 320000;
+let currentUserData = null;
+let products = [];
+let cart = [];
+let favorites = [];
 let currentCategoryFilter = "all";
+const productCategories = new Set([
+  "Tecnología", "Moda", "Hogar", "Belleza", "Deportes", "Accesorios", "Juguetes"
+]);
+const legacyStorageKeys = [
+  "paynex_products", "paynex_cart", "paynex_favorites", "paynex_buyer_orders",
+  "paynex_seller_orders", "paynex_transactions", "paynex_balance"
+];
+
+function clearLegacyStorage() {
+  legacyStorageKeys.forEach(key => {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error(`No se pudo eliminar el dato local heredado ${key}:`, error);
+    }
+  });
+}
+
+function storageKey(name) {
+  return currentUser ? `paynex_${name}_${currentUser.uid}` : null;
+}
+
+function readUserStorage(name, fallback) {
+  const key = storageKey(name);
+  if (!key) return fallback;
+  try {
+    const value = localStorage.getItem(key);
+    if (value === null) return fallback;
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (error) {
+    console.warn(`No se pudo leer el almacenamiento local de ${name}:`, error);
+    return fallback;
+  }
+}
+
+function saveUserStorage(name, value) {
+  const key = storageKey(name);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error(`No se pudo guardar ${name} en este dispositivo:`, error);
+    showToast("No se pudieron guardar los cambios en este dispositivo.");
+  }
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function productImageUrl(value) {
+  const image = String(value || "");
+  return /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(image) || /^https:\/\//i.test(image)
+    ? escapeHTML(image)
+    : "img/p_iphone_hq.png";
+}
+
+function isValidProduct(id, product) {
+  return /^[A-Za-z0-9_-]{1,64}$/.test(id)
+    && typeof product.sellerId === "string"
+    && typeof product.sellerName === "string"
+    && product.sellerName.length > 0
+    && product.sellerName.length <= 80
+    && typeof product.name === "string"
+    && product.name.length > 0
+    && product.name.length <= 120
+    && productCategories.has(product.category)
+    && Number.isSafeInteger(product.price)
+    && product.price > 0
+    && product.price <= 1000000000
+    && Number.isInteger(product.stock)
+    && product.stock >= 0
+    && product.stock <= 100000
+    && typeof product.image === "string"
+    && product.image.length <= 2048
+    && ( /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(product.image) || /^https:\/\/.+$/i.test(product.image) )
+    && product.status === "Activo";
+}
+
+async function loadProducts() {
+  const publicProducts = await getDocs(query(
+    collection(db, "products"),
+    where("status", "==", "Activo")
+  ));
+  const ownProducts = await getDocs(query(
+    collection(db, "products"),
+    where("sellerId", "==", currentUser.uid)
+  ));
+  const byId = new Map();
+  [...publicProducts.docs, ...ownProducts.docs].forEach(productDoc => {
+    const product = productDoc.data();
+    if (!isValidProduct(productDoc.id, product)) {
+      console.warn("Se omitió una publicación con datos inválidos:", productDoc.id);
+      return;
+    }
+    byId.set(productDoc.id, { id: productDoc.id, ...product });
+  });
+  products = [...byId.values()];
+  renderProducts();
+  renderFavorites();
+  renderCart();
+  renderSellerDashboard();
+}
 
 // ================= INICIALIZACIÓN =================
 document.addEventListener("DOMContentLoaded", () => {
+  clearLegacyStorage();
   initAuth();
   initNavigation();
+  initCarousel();
   initSearch();
   initCategories();
   renderProducts();
@@ -183,27 +164,56 @@ document.addEventListener("DOMContentLoaded", () => {
 // ================= 1. AUTENTICACIÓN Y SESIÓN =================
 function initAuth() {
   checkAuthState((user, userData) => {
-    if (user) {
-      currentUser = user;
-      const firstName = userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email?.split("@")[0] || "Santiago";
-      const lastName = userData?.lastName || (user.displayName ? user.displayName.split(" ").slice(1).join(" ") : "") || "G.";
-      const fullName = `${firstName} ${lastName}`.trim();
-      const photo = localStorage.getItem(`paynex_avatar_${user.email}`) || userData?.photoURL || user.photoURL || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face";
-
-      const headerUserName = document.getElementById("headerUserName");
-      const headerUserAvatar = document.getElementById("headerUserAvatar");
-      const profileDisplayName = document.getElementById("profileDisplayName");
-      const profileUserAvatar = document.getElementById("profileUserAvatar");
-      const profileFullNameInput = document.getElementById("profileFullNameInput");
-      const profileEmailInput = document.getElementById("profileEmailInput");
-
-      if (headerUserName) headerUserName.textContent = fullName;
-      if (headerUserAvatar) headerUserAvatar.src = photo;
-      if (profileDisplayName) profileDisplayName.textContent = fullName;
-      if (profileUserAvatar) profileUserAvatar.src = photo;
-      if (profileFullNameInput) profileFullNameInput.value = fullName;
-      if (profileEmailInput) profileEmailInput.value = user.email || "";
+    if (!user) {
+      window.location.replace("login.html");
+      return;
     }
+
+    currentUser = user;
+    currentUserData = userData;
+    const firstName = userData.firstName || user.displayName?.split(" ")[0] || user.email?.split("@")[0] || "Usuario";
+    const lastName = userData.lastName || user.displayName?.split(" ").slice(1).join(" ") || "";
+    const fullName = `${firstName} ${lastName}`.trim();
+    const candidatePhoto = typeof userData.photoURL === "string" ? userData.photoURL
+      : typeof user.photoURL === "string" ? user.photoURL : "";
+    const photo = candidatePhoto.startsWith("https://") || /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(candidatePhoto)
+      ? candidatePhoto
+      : "img/register_panel.png";
+    const headerUserName = document.getElementById("headerUserName");
+    const headerUserAvatar = document.getElementById("headerUserAvatar");
+    const profileDisplayName = document.getElementById("profileDisplayName");
+    const profileUserAvatar = document.getElementById("profileUserAvatar");
+    const profileFullNameInput = document.getElementById("profileFullNameInput");
+    const profileEmailInput = document.getElementById("profileEmailInput");
+
+    cart = readUserStorage("cart", []).filter(item =>
+      item && typeof item.id === "string" && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 100
+    );
+    favorites = readUserStorage("favorites", []).filter(id => typeof id === "string");
+    if (headerUserName) headerUserName.textContent = fullName;
+    if (headerUserAvatar) headerUserAvatar.src = photo;
+    if (profileDisplayName) profileDisplayName.textContent = fullName;
+    if (profileUserAvatar) profileUserAvatar.src = photo;
+    if (profileFullNameInput) profileFullNameInput.value = fullName;
+    if (profileEmailInput) profileEmailInput.value = user.email || "";
+    const headerUserRole = document.getElementById("headerUserRole");
+    if (headerUserRole) headerUserRole.textContent = userData.role === "vendedor" ? "Vendedor" : "Cliente";
+
+    document.querySelectorAll('[data-view="mis-ventas"]').forEach(item => {
+      item.style.display = userData.role === "vendedor" ? "" : "none";
+    });
+    const sellerView = document.getElementById("view-mis-ventas");
+    if (sellerView && userData.role !== "vendedor") sellerView.style.display = "none";
+    const createStoreButton = document.getElementById("btnSidebarCreateStore");
+    if (createStoreButton && userData.role !== "vendedor") createStoreButton.style.display = "none";
+
+    loadProducts().catch(error => {
+      console.error("No se pudo cargar el catálogo de Firestore:", error);
+      showToast("No fue posible cargar el catálogo. Intenta de nuevo más tarde.");
+    });
+  }, error => {
+    console.error("No se pudo verificar el perfil para el panel:", error);
+    window.location.replace("login.html?profileError=1");
   });
 
   // Cerrar sesión
@@ -211,9 +221,12 @@ function initAuth() {
   const btnConfigLogout = document.getElementById("btnConfigLogout");
   const handleLogout = (e) => {
     e.preventDefault();
-    logoutUser().then(() => {
-      window.location.href = "Index.html";
-    });
+    logoutUser()
+      .then(() => window.location.replace("index.html"))
+      .catch(error => {
+        console.error("Error al cerrar sesión:", error);
+        showToast("No fue posible cerrar la sesión. Inténtalo de nuevo.");
+      });
   };
 
   if (btnLogout) btnLogout.addEventListener("click", handleLogout);
@@ -303,16 +316,6 @@ function initNavigation() {
     });
   }
 
-  // Marcar notificaciones como leídas
-  const btnMarkNotifs = document.getElementById("btnMarkAllNotifsRead");
-  const notifBadge = document.getElementById("headerNotifBadge");
-  if (btnMarkNotifs) {
-    btnMarkNotifs.addEventListener("click", () => {
-      if (notifBadge) notifBadge.style.display = "none";
-      showToast("Notificaciones marcadas como leídas");
-    });
-  }
-
   // Cerrar popups al hacer clic fuera
   document.addEventListener("click", () => {
     if (userDropdown) userDropdown.classList.remove("open");
@@ -336,6 +339,36 @@ function initNavigation() {
   }
 }
 
+function initCarousel() {
+  const image = document.querySelector(".banner-3d-img");
+  const previous = document.getElementById("btnPrevSlide");
+  const next = document.getElementById("btnNextSlide");
+  const dots = [...document.querySelectorAll(".carousel-dot")];
+  if (!image || !previous || !next || !dots.length) return;
+
+  const slides = [
+    { src: "img/mockup2_banner_3d_2x.png", alt: "Productos PayNex" },
+    { src: "img/banner_hero_3d.png", alt: "Tecnología y productos" },
+    { src: "img/hero1_phone_cards_clean_2x.png", alt: "Catálogo PayNex en un teléfono" },
+    { src: "img/mockup1_hero_phone.png", alt: "Productos destacados" }
+  ].slice(0, dots.length);
+  let activeSlide = 0;
+
+  const showSlide = index => {
+    activeSlide = (index + slides.length) % slides.length;
+    image.src = slides[activeSlide].src;
+    image.alt = slides[activeSlide].alt;
+    dots.forEach((dot, dotIndex) => {
+      dot.classList.toggle("active", dotIndex === activeSlide);
+      dot.setAttribute("aria-pressed", String(dotIndex === activeSlide));
+    });
+  };
+
+  previous.addEventListener("click", () => showSlide(activeSlide - 1));
+  next.addEventListener("click", () => showSlide(activeSlide + 1));
+  dots.forEach((dot, index) => dot.addEventListener("click", () => showSlide(index)));
+}
+
 function switchSellerSubView(subviewId) {
   document.querySelectorAll(".seller-tab-btn").forEach(b => {
     b.classList.toggle("active", b.getAttribute("data-subview") === subviewId);
@@ -345,56 +378,68 @@ function switchSellerSubView(subviewId) {
   });
 }
 
-// ================= 3. RENDERIZADO DE PRODUCTOS (Mockup 2) =================
-function renderProducts() {
+// ================= 3. RENDERIZADO DE PRODUCTOS =================
+function renderProducts(searchTerm) {
   const featuredGrid = document.getElementById("featuredProductsGrid");
   const catalogGrid = document.getElementById("allProductsCatalogGrid");
 
-  let filtered = products;
-  if (currentCategoryFilter !== "all") {
-    filtered = products.filter(p => p.category.toLowerCase() === currentCategoryFilter.toLowerCase());
-  }
+  const activeSearch = searchTerm !== undefined
+    ? searchTerm
+    : document.getElementById("topSearchInput")?.value || "";
+  const term = activeSearch.trim().toLocaleLowerCase();
+  const filtered = products.filter(product =>
+    (currentCategoryFilter === "all" || product.category.toLowerCase() === currentCategoryFilter.toLowerCase())
+    && (!term || product.name.toLocaleLowerCase().includes(term)
+      || product.category.toLocaleLowerCase().includes(term)
+      || product.sellerName.toLocaleLowerCase().includes(term))
+  );
 
   const html = filtered.map(prod => {
+    const id = escapeHTML(prod.id);
+    const name = escapeHTML(prod.name);
     const isFav = favorites.includes(prod.id);
-    const formattedPrice = `$ ${Number(prod.price).toLocaleString("es-CO")}`;
-    const badgeHtml = prod.badge ? `<span class="product-badge-pill">${prod.badge}</span>` : "";
+    const stock = Number.isInteger(prod.stock) ? prod.stock : 0;
 
     return `
-      <div class="product-item-card" data-product-id="${prod.id}">
-        ${badgeHtml}
-        <button type="button" class="btn-fav-heart ${isFav ? 'active' : ''}" onclick="window.toggleFavorite(${prod.id})" title="Añadir a favoritos">
+      <div class="product-item-card" data-product-id="${id}">
+        <button type="button" class="btn-fav-heart ${isFav ? 'active' : ''}" data-product-action="favorite" data-product-id="${id}" title="Añadir a favoritos">
           <svg width="16" height="16" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
           </svg>
         </button>
 
         <div class="product-img-wrap">
-          <img src="${prod.image}" alt="${prod.name}">
+          <img src="${productImageUrl(prod.image)}" alt="${name}" loading="lazy">
         </div>
 
         <div class="product-info-wrap">
-          <div class="product-item-title" title="${prod.name}">${prod.name}</div>
-          <div class="product-rating">
-            <span class="star">★</span>
-            <span class="score">${prod.rating || 4.8}</span>
-            <span class="reviews">(${prod.reviews || 85})</span>
-          </div>
-          <div class="product-price">${formattedPrice}</div>
+          <div class="product-item-title" title="${name}">${name}</div>
+          <div class="product-rating">${escapeHTML(prod.category)} · ${stock} disponibles</div>
+          <div class="product-rating">Vendedor: ${escapeHTML(prod.sellerName)}</div>
+          <div class="product-price">$ ${Number(prod.price).toLocaleString("es-CO")}</div>
         </div>
 
-        <button type="button" class="btn-add-cart" onclick="window.addToCart(${prod.id})">
+        <button type="button" class="btn-add-cart" data-product-action="cart" data-product-id="${id}" ${stock < 1 ? "disabled" : ""}>
           <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
           </svg>
-          <span>Agregar al carrito</span>
+          <span>${stock < 1 ? "Agotado" : "Agregar al carrito"}</span>
         </button>
       </div>
     `;
   }).join("");
 
-  if (featuredGrid) featuredGrid.innerHTML = html;
-  if (catalogGrid) catalogGrid.innerHTML = html;
+  const content = html || `<p style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted);">${products.length ? "No se encontraron productos." : "Aún no hay productos publicados."}</p>`;
+  [featuredGrid, catalogGrid].forEach(grid => {
+    if (!grid) return;
+    grid.innerHTML = content;
+    grid.querySelectorAll("[data-product-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        if (button.dataset.productAction === "favorite") window.toggleFavorite(button.dataset.productId);
+        if (button.dataset.productAction === "cart") window.addToCart(button.dataset.productId);
+      });
+    });
+  });
 }
 
 // ================= 4. FAVORITOS =================
@@ -409,7 +454,7 @@ window.toggleFavorite = function(productId) {
     showToast(`❤️ ${prod ? prod.name : 'Producto'} añadido a favoritos`);
   }
 
-  localStorage.setItem("paynex_favorites", JSON.stringify(favorites));
+  saveUserStorage("favorites", favorites);
   renderProducts();
   renderFavorites();
 };
@@ -432,50 +477,65 @@ function renderFavorites() {
         <div style="font-size: 42px; margin-bottom: 12px;">🤍</div>
         <h3 style="font-size: 18px; margin-bottom: 6px;">No tienes productos en favoritos</h3>
         <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 18px;">Explora el catálogo y presiona el corazón para guardar tus favoritos.</p>
-        <button type="button" class="btn-primary-action" onclick="window.switchView('inicio')">Explorar productos</button>
+        <button type="button" class="btn-primary-action" data-switch-view="inicio">Explorar productos</button>
       </div>
     `;
+    favGrid.querySelector("[data-switch-view]")?.addEventListener("click", () => window.switchView("inicio"));
     return;
   }
 
   favGrid.innerHTML = favProducts.map(prod => `
     <div class="product-item-card">
-      <button type="button" class="btn-fav-heart active" onclick="window.toggleFavorite(${prod.id})" title="Quitar de favoritos">
+      <button type="button" class="btn-fav-heart active" data-product-action="favorite" data-product-id="${escapeHTML(prod.id)}" title="Quitar de favoritos">
         <svg width="16" height="16" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
         </svg>
       </button>
 
       <div class="product-img-wrap">
-        <img src="${prod.image}" alt="${prod.name}">
+        <img src="${productImageUrl(prod.image)}" alt="${escapeHTML(prod.name)}" loading="lazy">
       </div>
 
       <div class="product-info-wrap">
-        <div class="product-item-title">${prod.name}</div>
+        <div class="product-item-title">${escapeHTML(prod.name)}</div>
         <div class="product-price">$ ${Number(prod.price).toLocaleString("es-CO")}</div>
       </div>
 
-      <button type="button" class="btn-add-cart" onclick="window.addToCart(${prod.id})">
+      <button type="button" class="btn-add-cart" data-product-action="cart" data-product-id="${escapeHTML(prod.id)}" ${prod.stock < 1 ? "disabled" : ""}>
         <span>Agregar al carrito</span>
       </button>
     </div>
   `).join("");
+  favGrid.querySelectorAll("[data-product-action]").forEach(button => {
+    button.addEventListener("click", () => {
+      if (button.dataset.productAction === "favorite") window.toggleFavorite(button.dataset.productId);
+      if (button.dataset.productAction === "cart") window.addToCart(button.dataset.productId);
+    });
+  });
 }
 
 // ================= 5. CARRITO DE COMPRAS =================
 window.addToCart = function(productId) {
+  const product = products.find(item => item.id === productId);
+  if (!product || product.stock < 1) {
+    showToast("Este producto ya no está disponible.");
+    return;
+  }
   const existing = cart.find(item => item.id === productId);
   if (existing) {
+    if (existing.quantity >= product.stock) {
+      showToast("No hay más unidades disponibles.");
+      return;
+    }
     existing.quantity += 1;
   } else {
     cart.push({ id: productId, quantity: 1 });
   }
 
-  localStorage.setItem("paynex_cart", JSON.stringify(cart));
+  saveUserStorage("cart", cart);
   renderCart();
 
-  const prod = products.find(p => p.id === productId);
-  showToast(`🛍️ ${prod ? prod.name : 'Producto'} añadido al carrito`);
+  showToast(`🛍️ ${product.name} añadido al carrito`);
   openCartDrawer();
 };
 
@@ -486,15 +546,18 @@ window.updateCartQty = function(productId, delta) {
   item.quantity += delta;
   if (item.quantity <= 0) {
     cart = cart.filter(i => i.id !== productId);
+  } else {
+    const product = products.find(item => item.id === productId);
+    if (product && item.quantity > product.stock) item.quantity = product.stock;
   }
 
-  localStorage.setItem("paynex_cart", JSON.stringify(cart));
+  saveUserStorage("cart", cart);
   renderCart();
 };
 
 window.removeFromCart = function(productId) {
   cart = cart.filter(i => i.id !== productId);
-  localStorage.setItem("paynex_cart", JSON.stringify(cart));
+  saveUserStorage("cart", cart);
   renderCart();
   showToast("Producto eliminado del carrito");
 };
@@ -533,12 +596,8 @@ function renderCart() {
   }
 
   const itemsHtml = cart.map(item => {
-    const prod = products.find(p => p.id === item.id) || {
-      id: item.id,
-      name: "Producto PayNex",
-      price: 100000,
-      image: "img/p_iphone_hq.png"
-    };
+    const prod = products.find(p => p.id === item.id);
+    if (!prod) return "";
 
     const itemTotal = prod.price * item.quantity;
     totalAmount += itemTotal;
@@ -546,23 +605,33 @@ function renderCart() {
     return `
       <div class="cart-item-row">
         <div class="cart-item-thumb">
-          <img src="${prod.image}" alt="${prod.name}">
+          <img src="${productImageUrl(prod.image)}" alt="${escapeHTML(prod.name)}">
         </div>
         <div class="cart-item-info">
-          <div class="cart-item-title">${prod.name}</div>
+          <div class="cart-item-title">${escapeHTML(prod.name)}</div>
           <div class="cart-item-price">$ ${Number(prod.price).toLocaleString("es-CO")}</div>
           <div class="cart-qty-ctrl">
-            <button type="button" class="btn-qty" onclick="window.updateCartQty(${prod.id}, -1)">-</button>
+            <button type="button" class="btn-qty" data-cart-action="decrease" data-product-id="${escapeHTML(prod.id)}">-</button>
             <span style="font-size: 13px; font-weight: 700; min-width: 18px; text-align: center;">${item.quantity}</span>
-            <button type="button" class="btn-qty" onclick="window.updateCartQty(${prod.id}, 1)">+</button>
+            <button type="button" class="btn-qty" data-cart-action="increase" data-product-id="${escapeHTML(prod.id)}">+</button>
           </div>
         </div>
-        <button type="button" class="btn-remove-cart" onclick="window.removeFromCart(${prod.id})" title="Eliminar">🗑️</button>
+        <button type="button" class="btn-remove-cart" data-cart-action="remove" data-product-id="${escapeHTML(prod.id)}" title="Eliminar">🗑️</button>
       </div>
     `;
   }).join("");
 
-  if (container) container.innerHTML = itemsHtml;
+  if (container) {
+    container.innerHTML = itemsHtml;
+    container.querySelectorAll("[data-cart-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        const { productId, cartAction } = button.dataset;
+        if (cartAction === "decrease") window.updateCartQty(productId, -1);
+        if (cartAction === "increase") window.updateCartQty(productId, 1);
+        if (cartAction === "remove") window.removeFromCart(productId);
+      });
+    });
+  }
   const formattedTotal = `$ ${Number(totalAmount).toLocaleString("es-CO")}`;
   if (subtotalEl) subtotalEl.textContent = formattedTotal;
   if (totalEl) totalEl.textContent = formattedTotal;
@@ -591,51 +660,7 @@ function initCartDrawer() {
 
   if (btnCheckout) {
     btnCheckout.addEventListener("click", () => {
-      if (cart.length === 0) {
-        showToast("Tu carrito está vacío");
-        return;
-      }
-
-      // Procesar compra: añadir a Mis compras
-      cart.forEach(item => {
-        const prod = products.find(p => p.id === item.id);
-        if (prod) {
-          const newOrder = {
-            id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-            productName: prod.name,
-            productImage: prod.image,
-            sellerName: prod.sellerName || "Vendedor PayNex",
-            amount: prod.price * item.quantity,
-            date: "Hoy",
-            status: "Enviado"
-          };
-          buyerOrders.unshift(newOrder);
-
-          // También registrar como venta recibida
-          sellerOrders.unshift({
-            id: newOrder.id,
-            productName: prod.name,
-            buyerName: currentUser?.displayName || "Santiago G.",
-            amount: newOrder.amount,
-            date: "Hoy",
-            status: "Pendiente"
-          });
-        }
-      });
-
-      // Limpiar carrito
-      cart = [];
-      localStorage.setItem("paynex_cart", JSON.stringify(cart));
-      localStorage.setItem("paynex_buyer_orders", JSON.stringify(buyerOrders));
-      localStorage.setItem("paynex_seller_orders", JSON.stringify(sellerOrders));
-
-      renderCart();
-      renderBuyerOrders();
-      renderSellerDashboard();
-      closeCartDrawer();
-
-      showToast("🎉 ¡Compra realizada con éxito! Revisa 'Mis compras'.");
-      switchView("mis-compras");
+      showToast("Las compras están deshabilitadas hasta integrar un proveedor de pagos seguro.");
     });
   }
 }
@@ -647,155 +672,92 @@ function renderBuyerOrders() {
   const inTransitEl = document.getElementById("buyerInTransitCount");
   const deliveredEl = document.getElementById("buyerDeliveredCount");
 
-  if (countEl) countEl.textContent = buyerOrders.length;
-  if (inTransitEl) inTransitEl.textContent = buyerOrders.filter(o => o.status === "Enviado" || o.status === "Pendiente").length;
-  if (deliveredEl) deliveredEl.textContent = buyerOrders.filter(o => o.status === "Entregado").length;
+  if (countEl) countEl.textContent = "No disponible";
+  if (inTransitEl) inTransitEl.textContent = "No disponible";
+  if (deliveredEl) deliveredEl.textContent = "No disponible";
 
   if (!tbody) return;
-
-  if (buyerOrders.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">No has realizado compras aún.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = buyerOrders.map(order => {
-    let statusClass = "pending";
-    if (order.status === "Enviado") statusClass = "sent";
-    if (order.status === "Entregado") statusClass = "delivered";
-
-    return `
-      <tr>
-        <td><strong>#${order.id}</strong></td>
-        <td>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="${order.productImage}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 8px; background: #f8fafc;">
-            <span>${order.productName}</span>
-          </div>
-        </td>
-        <td>${order.sellerName}</td>
-        <td><strong>$ ${Number(order.amount).toLocaleString("es-CO")}</strong></td>
-        <td>${order.date}</td>
-        <td><span class="status-badge ${statusClass}">${order.status}</span></td>
-        <td>
-          <button type="button" class="btn-primary-action" style="padding: 6px 12px; font-size: 11px;" onclick="window.showToast('Seguimiento activo: En camino a tu dirección')">
-            Rastrear 🚚
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join("");
-
-  // Botón simular compra
-  const btnSimulate = document.getElementById("btnSimulatePurchase");
-  if (btnSimulate) {
-    btnSimulate.onclick = () => {
-      const sample = products[Math.floor(Math.random() * products.length)];
-      buyerOrders.unshift({
-        id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-        productName: sample.name,
-        productImage: sample.image,
-        sellerName: "Emprendedor PayNex",
-        amount: sample.price,
-        date: "Hoy",
-        status: "Enviado"
-      });
-      localStorage.setItem("paynex_buyer_orders", JSON.stringify(buyerOrders));
-      renderBuyerOrders();
-      showToast(`🛍️ Compra simulada: ${sample.name}`);
-    };
-  }
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">El historial de compras no está disponible hasta integrar pedidos y pagos verificados.</td></tr>`;
 }
 
 // ================= 7. VISTA VENDEDOR: MIS VENTAS & FINANZAS =================
 function renderSellerDashboard() {
-  // KPIs
   const totalSalesEl = document.getElementById("kpiTotalSales");
   const activeProductsEl = document.getElementById("kpiActiveProducts");
   const balanceEl = document.getElementById("kpiAvailableBalance");
   const financeBalanceEl = document.getElementById("financeBalanceAmount");
 
-  if (activeProductsEl) activeProductsEl.textContent = products.length;
-  if (balanceEl) balanceEl.textContent = `$ ${Number(availableBalance).toLocaleString("es-CO")}`;
-  if (financeBalanceEl) financeBalanceEl.textContent = `$ ${Number(availableBalance).toLocaleString("es-CO")} COP`;
+  const ownProducts = currentUser ? products.filter(product => product.sellerId === currentUser.uid) : [];
+  if (totalSalesEl) totalSalesEl.textContent = "No disponible";
+  if (activeProductsEl) activeProductsEl.textContent = ownProducts.length;
+  if (balanceEl) balanceEl.textContent = "No disponible";
+  if (financeBalanceEl) financeBalanceEl.textContent = "No disponible";
 
-  // Tabla Mis Productos
   const prodTbody = document.getElementById("sellerProductsTableBody");
   if (prodTbody) {
-    prodTbody.innerHTML = products.map(prod => `
+    prodTbody.innerHTML = ownProducts.length ? ownProducts.map(prod => `
       <tr>
         <td>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="${prod.image}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 8px;">
-            <strong>${prod.name}</strong>
+            <img src="${productImageUrl(prod.image)}" alt="" style="width: 36px; height: 36px; object-fit: contain; border-radius: 8px;">
+            <strong>${escapeHTML(prod.name)}</strong>
           </div>
         </td>
-        <td>${prod.category}</td>
+        <td>${escapeHTML(prod.category)}</td>
         <td>$ ${Number(prod.price).toLocaleString("es-CO")}</td>
         <td>${prod.stock} un.</td>
         <td><span class="status-badge delivered">Activo</span></td>
         <td>
-          <button type="button" style="background:none; border:none; cursor:pointer; margin-right:8px;" onclick="window.editProduct(${prod.id})" title="Editar">✏️</button>
-          <button type="button" style="background:none; border:none; cursor:pointer; color:#ef4444;" onclick="window.deleteProduct(${prod.id})" title="Eliminar">🗑️</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; margin-right:8px;" data-product-action="edit" data-product-id="${escapeHTML(prod.id)}" title="Editar">✏️</button>
+          <button type="button" style="background:none; border:none; cursor:pointer; color:#ef4444;" data-product-action="delete" data-product-id="${escapeHTML(prod.id)}" title="Eliminar">🗑️</button>
         </td>
       </tr>
-    `).join("");
+    `).join("") : `<tr><td colspan="6" style="text-align:center;padding:24px;">Aún no has publicado productos.</td></tr>`;
+    prodTbody.querySelectorAll("[data-product-action]").forEach(button => {
+      button.addEventListener("click", () => {
+        const productId = button.dataset.productId;
+        if (button.dataset.productAction === "edit") window.editProduct(productId);
+        if (button.dataset.productAction === "delete") window.deleteProduct(productId);
+      });
+    });
   }
 
-  // Tabla Pedidos Recibidos
   const ordersTbody = document.getElementById("sellerReceivedOrdersTableBody");
   if (ordersTbody) {
-    ordersTbody.innerHTML = sellerOrders.map(o => `
-      <tr>
-        <td><strong>#${o.id}</strong></td>
-        <td>${o.productName}</td>
-        <td>${o.buyerName}</td>
-        <td><strong>$ ${Number(o.amount).toLocaleString("es-CO")}</strong></td>
-        <td>${o.date}</td>
-        <td><span class="status-badge sent">${o.status}</span></td>
-        <td>
-          <select style="padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px;" onchange="window.updateSellerOrderStatus('${o.id}', this.value)">
-            <option value="Pendiente" ${o.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-            <option value="Enviado" ${o.status === 'Enviado' ? 'selected' : ''}>Enviado</option>
-            <option value="Entregado" ${o.status === 'Entregado' ? 'selected' : ''}>Entregado</option>
-          </select>
-        </td>
-      </tr>
-    `).join("");
+    ordersTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;">No hay pedidos confirmados.</td></tr>`;
   }
 
-  // Historial de Movimientos Financieros
   const txList = document.getElementById("transactionsListWrap");
   if (txList) {
-    txList.innerHTML = transactions.map(tx => `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 3px solid ${tx.amount > 0 ? '#10b981' : '#ef4444'};">
-        <div>
-          <strong style="font-size: 13.5px;">${tx.title}</strong>
-          <div style="font-size: 12px; color: var(--text-muted);">${tx.date}</div>
-        </div>
-        <strong style="color: ${tx.amount > 0 ? '#10b981' : '#ef4444'}; font-size: 14px;">
-          ${tx.amount > 0 ? '+' : ''}$ ${Number(tx.amount).toLocaleString("es-CO")}
-        </strong>
-      </div>
-    `).join("");
+    txList.innerHTML = `<p style="color:var(--text-muted);">Los pagos y movimientos aún no están habilitados.</p>`;
   }
 }
 
 window.updateSellerOrderStatus = function(orderId, newStatus) {
-  const o = sellerOrders.find(item => item.id === orderId);
-  if (o) {
-    o.status = newStatus;
-    localStorage.setItem("paynex_seller_orders", JSON.stringify(sellerOrders));
-    showToast(`Pedido #${orderId} actualizado a: ${newStatus}`);
-  }
+  console.warn("No se pueden actualizar pedidos: el flujo de pedidos todavía no está habilitado.", orderId, newStatus);
+  showToast("La gestión de pedidos aún no está habilitada.");
 };
 
-window.deleteProduct = function(prodId) {
+window.deleteProduct = async function(prodId) {
   if (confirm("¿Estás seguro de eliminar este producto del catálogo?")) {
-    products = products.filter(p => p.id !== prodId);
-    localStorage.setItem("paynex_products", JSON.stringify(products));
-    renderProducts();
-    renderSellerDashboard();
-    showToast("Producto eliminado");
+    try {
+      const product = products.find(item => item.id === prodId && item.sellerId === currentUser?.uid);
+      if (!product) throw new Error("No tienes permiso para eliminar este producto.");
+      await deleteDoc(doc(db, "products", prodId));
+      products = products.filter(item => item.id !== prodId);
+      favorites = favorites.filter(id => id !== prodId);
+      cart = cart.filter(item => item.id !== prodId);
+      saveUserStorage("favorites", favorites);
+      saveUserStorage("cart", cart);
+      renderProducts();
+      renderFavorites();
+      renderCart();
+      renderSellerDashboard();
+      showToast("Producto eliminado");
+    } catch (error) {
+      console.error("No se pudo eliminar el producto:", error);
+      showToast("No se pudo eliminar el producto. Verifica tu conexión y permisos.");
+    }
   }
 };
 
@@ -804,32 +766,9 @@ function initWithdrawForm() {
   const form = document.getElementById("financeWithdrawForm");
   if (!form) return;
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", e => {
     e.preventDefault();
-    const method = document.getElementById("withdrawMethodSelect").value;
-    const account = document.getElementById("withdrawAccountInput").value;
-    const amount = parseFloat(document.getElementById("withdrawAmountInput").value);
-
-    if (amount > availableBalance) {
-      alert("El monto ingresado supera tu saldo disponible.");
-      return;
-    }
-
-    availableBalance -= amount;
-    transactions.unshift({
-      id: Date.now(),
-      type: "withdraw",
-      title: `Retiro a ${method.toUpperCase()} (${account})`,
-      date: "Hoy",
-      amount: -amount
-    });
-
-    localStorage.setItem("paynex_balance", availableBalance.toString());
-    localStorage.setItem("paynex_transactions", JSON.stringify(transactions));
-
-    renderSellerDashboard();
-    form.reset();
-    showToast(`💸 Solicitud de retiro por $${Number(amount).toLocaleString("es-CO")} procesada con éxito.`);
+    showToast("Los retiros no están habilitados: falta integrar un procesador de pagos y validación del servidor.");
   });
 }
 
@@ -842,6 +781,10 @@ function initModals() {
   const form = document.getElementById("productForm");
 
   window.openAddProductModal = function() {
+    if (currentUserData?.role !== "vendedor") {
+      showToast("Solo las cuentas de vendedor pueden publicar productos.");
+      return;
+    }
     if (modal) modal.classList.add("open");
   };
 
@@ -857,7 +800,7 @@ function initModals() {
   if (btnCancel) btnCancel.addEventListener("click", closeAddProductModal);
 
   window.editProduct = function(id) {
-    const prod = products.find(p => p.id === id);
+    const prod = products.find(p => p.id === id && p.sellerId === currentUser?.uid);
     if (!prod) return;
 
     document.getElementById("prodEditId").value = prod.id;
@@ -871,47 +814,68 @@ function initModals() {
   };
 
   if (form) {
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async e => {
       e.preventDefault();
+      if (currentUserData?.role !== "vendedor" || !currentUser) {
+        showToast("Solo las cuentas de vendedor pueden publicar productos.");
+        return;
+      }
       const editId = document.getElementById("prodEditId").value;
-      const title = document.getElementById("prodTitleInput").value;
+      const title = document.getElementById("prodTitleInput").value.trim();
       const category = document.getElementById("prodCategorySelect").value;
-      const price = parseFloat(document.getElementById("prodPriceInput").value);
-      const stock = parseInt(document.getElementById("prodStockInput").value, 10);
-      const image = document.getElementById("prodImageInput").value || "img/p_iphone_hq.png";
-
-      if (editId) {
-        const p = products.find(prod => prod.id == editId);
-        if (p) {
-          p.name = title;
-          p.category = category;
-          p.price = price;
-          p.stock = stock;
-          p.image = image;
-        }
-        showToast("Producto actualizado correctamente");
-      } else {
-        const newProduct = {
-          id: Date.now(),
-          name: title,
-          category: category,
-          price: price,
-          stock: stock,
-          image: image,
-          rating: 5.0,
-          reviews: 1,
-          badge: "Nuevo",
-          status: "Activo",
-          sellerName: currentUser?.displayName || "Santiago G."
-        };
-        products.unshift(newProduct);
-        showToast("🎉 ¡Producto publicado en el catálogo!");
+      const price = Number(document.getElementById("prodPriceInput").value);
+      const stock = Number(document.getElementById("prodStockInput").value);
+      const image = document.getElementById("prodImageInput").value.trim() || "img/p_iphone_hq.png";
+      if (!title || title.length > 120 || !Number.isSafeInteger(price) || price < 1 || price > 1000000000
+        || !Number.isInteger(stock) || stock < 0 || stock > 100000
+        || !(/^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(image) || /^https:\/\/.+$/.test(image))
+        || image.length > 2048) {
+        showToast("Revisa el nombre, precio, inventario y URL de imagen.");
+        return;
       }
 
-      localStorage.setItem("paynex_products", JSON.stringify(products));
-      renderProducts();
-      renderSellerDashboard();
-      closeAddProductModal();
+      const fullSellerName = `${currentUserData.firstName} ${currentUserData.lastName}`.trim();
+      const sellerName = fullSellerName.length <= 80 ? fullSellerName : currentUserData.username;
+      const productData = {
+        sellerId: currentUser.uid,
+        sellerName,
+        name: title,
+        category,
+        price,
+        stock,
+        image,
+        status: "Activo"
+      };
+
+      try {
+        if (editId) {
+          const existing = products.find(product => product.id === editId && product.sellerId === currentUser.uid);
+          if (!existing) throw new Error("No tienes permiso para editar este producto.");
+          await updateDoc(doc(db, "products", editId), {
+            ...productData,
+            createdAt: existing.createdAt,
+            updatedAt: serverTimestamp()
+          });
+          products = products.map(product => product.id === editId
+            ? { ...product, ...productData }
+            : product);
+          showToast("Producto actualizado correctamente.");
+        } else {
+          const productRef = await addDoc(collection(db, "products"), {
+            ...productData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          products = [{ ...productData, id: productRef.id }, ...products];
+          showToast("Producto publicado en el catálogo.");
+        }
+        renderProducts();
+        renderSellerDashboard();
+        closeAddProductModal();
+      } catch (error) {
+        console.error("No se pudo guardar el producto:", error);
+        showToast("No se pudo guardar el producto. Comprueba tu conexión y permisos.");
+      }
     });
   }
 }
@@ -921,42 +885,18 @@ function initSearch() {
   const searchInput = document.getElementById("topSearchInput");
   if (!searchInput) return;
 
-  searchInput.addEventListener("input", (e) => {
-    filterProducts(e.target.value);
+  searchInput.addEventListener("input", () => filterProducts(searchInput.value));
+  searchInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      filterProducts(searchInput.value);
+    }
   });
+  document.getElementById("btnTopSearch")?.addEventListener("click", () => filterProducts(searchInput.value));
 }
 
 function filterProducts(query) {
-  const term = query.toLowerCase().trim();
-  const filtered = products.filter(p => 
-    p.name.toLowerCase().includes(term) || 
-    p.category.toLowerCase().includes(term)
-  );
-
-  const featuredGrid = document.getElementById("featuredProductsGrid");
-  const catalogGrid = document.getElementById("allProductsCatalogGrid");
-
-  if (!featuredGrid && !catalogGrid) return;
-
-  const html = filtered.map(prod => `
-    <div class="product-item-card">
-      <button type="button" class="btn-fav-heart ${favorites.includes(prod.id) ? 'active' : ''}" onclick="window.toggleFavorite(${prod.id})">
-        <svg width="16" height="16" fill="${favorites.includes(prod.id) ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-        </svg>
-      </button>
-      <div class="product-img-wrap"><img src="${prod.image}" alt="${prod.name}"></div>
-      <div class="product-info-wrap">
-        <div class="product-item-title">${prod.name}</div>
-        <div class="product-price">$ ${Number(prod.price).toLocaleString("es-CO")}</div>
-      </div>
-      <button type="button" class="btn-add-cart" onclick="window.addToCart(${prod.id})">
-        <span>Agregar al carrito</span>
-      </button>
-    </div>
-  `).join("");
-
-  if (featuredGrid) featuredGrid.innerHTML = html.length ? html : `<p style="grid-column:1/-1; text-align:center; padding:30px; color:var(--text-muted);">No se encontraron productos para "${query}"</p>`;
+  renderProducts(query);
 }
 
 function initCategories() {
@@ -975,33 +915,35 @@ function initCategories() {
 function initProfile() {
   const form = document.getElementById("userProfileForm");
   const avatarInput = document.getElementById("avatarFileInput");
-
-  if (avatarInput) {
-    avatarInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (re) => {
-          const photoUrl = re.target.result;
-          document.getElementById("profileUserAvatar").src = photoUrl;
-          document.getElementById("headerUserAvatar").src = photoUrl;
-          if (currentUser) {
-            localStorage.setItem(`paynex_avatar_${currentUser.email}`, photoUrl);
-          }
-          showToast("Foto de perfil actualizada");
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
+  if (avatarInput) avatarInput.disabled = true;
 
   if (form) {
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async e => {
       e.preventDefault();
-      const newName = document.getElementById("profileFullNameInput").value;
-      document.getElementById("headerUserName").textContent = newName;
-      document.getElementById("profileDisplayName").textContent = newName;
-      showToast("Datos de perfil guardados");
+      if (!currentUser) return;
+      const newName = document.getElementById("profileFullNameInput").value.trim();
+      const [firstName, ...lastNameParts] = newName.split(/\s+/);
+      const lastName = lastNameParts.join(" ");
+      if (!firstName || firstName.length > 80 || lastName.length > 120 || newName.length > 200) {
+        showToast("Usa un nombre de hasta 80 caracteres y un apellido de hasta 120.");
+        return;
+      }
+
+      try {
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          firstName,
+          lastName,
+          updatedAt: serverTimestamp()
+        });
+        currentUserData = { ...currentUserData, firstName, lastName };
+        const displayName = `${firstName} ${lastName}`.trim();
+        document.getElementById("headerUserName").textContent = displayName;
+        document.getElementById("profileDisplayName").textContent = displayName;
+        showToast("Datos de perfil guardados.");
+      } catch (error) {
+        console.error("No se pudo actualizar el perfil:", error);
+        showToast("No se pudieron guardar los datos del perfil.");
+      }
     });
   }
 }

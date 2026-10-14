@@ -1,36 +1,38 @@
 import { 
   auth, 
   db, 
-  SUPER_ADMIN_EMAILS,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  getAdditionalUserInfo,
+  deleteUser,
+  sendPasswordResetEmail,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence,
   doc,
   getDoc,
   setDoc,
   serverTimestamp
 } from "./firebase-confi.js";
 
-/**
- * Determina el rol final del usuario.
- * Si su correo está entre los Super Admin, se le asigna 'superadmin'.
- */
+export const REGISTRATION_ENABLED = true;
+const PROFILE_REQUIRED_MESSAGE = "No encontramos un perfil PayNex asociado a esta cuenta. Si el problema continúa, contacta a soporte.";
+
 export function determineRole(email, selectedRole = "cliente") {
-  if (!email) return selectedRole;
-  const cleanEmail = email.toLowerCase().trim();
-  if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail)) {
-    return "superadmin";
-  }
-  return selectedRole;
+  return selectedRole === "vendedor" ? "vendedor" : "cliente";
 }
 
 /**
  * Traduce códigos de error de Firebase Auth a mensajes en español
  */
 function parseAuthError(error) {
+  if (error.message === PROFILE_REQUIRED_MESSAGE) {
+    return PROFILE_REQUIRED_MESSAGE;
+  }
   if (error.code === "auth/unauthorized-domain") {
     const d = window.location.hostname || "tu dominio local";
     return `El dominio '${d}' no está autorizado en Firebase. Agrégalo en Firebase Console → Authentication → Authorized domains.`;
@@ -38,13 +40,40 @@ function parseAuthError(error) {
   if (error.code === "auth/popup-closed-by-user") {
     return "La ventana de Google fue cerrada antes de completar.";
   }
-  if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
+  if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(error.code)) {
     return "Correo o contraseña incorrectos.";
   }
   if (error.code === "auth/email-already-in-use") {
     return "Este correo ya está registrado. Intenta iniciar sesión.";
   }
-  return error.message || "Ocurrió un error inesperado.";
+  if (error.code === "auth/too-many-requests") {
+    return "Se realizaron demasiados intentos. Espera un momento e inténtalo de nuevo.";
+  }
+  if (error.code === "auth/network-request-failed") {
+    return "No fue posible conectar con el servicio. Revisa tu conexión e inténtalo de nuevo.";
+  }
+  if (error.code === "auth/operation-not-allowed") {
+    return "Este método de acceso no está habilitado en Firebase.";
+  }
+  if (error.code === "auth/weak-password") {
+    return "La contraseña es demasiado débil. Usa al menos 6 caracteres y vuelve a intentarlo.";
+  }
+  if (error.code === "auth/invalid-email") {
+    return "El correo electrónico no tiene un formato válido.";
+  }
+  if (error.code === "auth/invalid-api-key" || error.code === "auth/app-not-authorized") {
+    return "La configuración de Firebase no autoriza esta aplicación. Contacta a soporte.";
+  }
+  if (error.code === "permission-denied") {
+    return "Firebase Authentication recibió el registro, pero Firestore rechazó el perfil. Publica las reglas actuales de firestore.rules en Firebase Console y vuelve a intentarlo.";
+  }
+  if (error.code === "unavailable" || error.code === "deadline-exceeded") {
+    return "No se pudo conectar con Firestore para guardar el perfil. Revisa tu conexión e inténtalo de nuevo.";
+  }
+  if (error.code) {
+    return `Firebase rechazó el registro (${error.code}). Revisa la configuración del proyecto e inténtalo de nuevo.`;
+  }
+  return "No se pudo completar la autenticación. Verifica los datos e inténtalo de nuevo.";
 }
 
 /**
@@ -54,20 +83,33 @@ function buildUsername(firstName, email) {
   const base = (firstName || email?.split("@")[0] || "usuario")
     .toLowerCase()
     .replace(/\s+/g, "")
-    .replace(/[^a-z0-9_]/g, "");
-  return `@${base}`;
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 39);
+  return `@${base || "usuario"}`;
 }
 
 /**
  * Registra un nuevo usuario con Email y Contraseña
  */
-export async function registerUser(email, password, firstName, lastName, selectedRole = "cliente") {
+export async function registerUser(email, password, firstName, lastName, selectedRole = "cliente", requestedUsername = "") {
+  if (!REGISTRATION_ENABLED) {
+    return {
+      success: false,
+      message: "El registro no está disponible temporalmente."
+    };
+  }
   const finalRole = determineRole(email, selectedRole);
+  const requestedName = requestedUsername.trim();
+  const username = requestedName ? requestedName.replace(/^@?/, "@") : buildUsername(firstName, email);
+  if (!firstName.trim() || firstName.length > 80 || lastName.length > 120
+    || !/^@[a-zA-Z0-9_]{1,39}$/.test(username)) {
+    return { success: false, message: "Revisa que el nombre y usuario tengan una longitud válida." };
+  }
+  let user;
+  let profileWriteFailed = false;
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    const username = buildUsername(firstName, email);
+    user = userCredential.user;
 
     const userData = {
       uid: user.uid,
@@ -81,13 +123,33 @@ export async function registerUser(email, password, firstName, lastName, selecte
 
     try {
       await setDoc(doc(db, "users", user.uid), userData);
-    } catch (fsError) {
-      console.warn("Firestore bloqueado al registrar:", fsError);
+    } catch (error) {
+      profileWriteFailed = true;
+      throw error;
     }
 
     return { success: true, user, role: finalRole };
   } catch (error) {
     console.error("Error al registrar usuario:", error);
+    if (user) {
+      try {
+        await deleteUser(user);
+      } catch (rollbackError) {
+        console.error("No se pudo revertir el alta incompleta en Firebase Auth:", rollbackError);
+        return {
+          success: false,
+          message: profileWriteFailed
+            ? `No se pudo guardar el perfil en Firestore y no se pudo eliminar la cuenta incompleta (${error.code || "error desconocido"}). Contacta a soporte antes de volver a registrarte.`
+            : "No se pudo completar el registro y la cuenta quedó pendiente de revisión. Contacta a soporte antes de volver a registrarte."
+        };
+      }
+    }
+    if (profileWriteFailed) {
+      return {
+        success: false,
+        message: parseAuthError(error)
+      };
+    }
     return { success: false, message: parseAuthError(error) };
   }
 }
@@ -95,123 +157,120 @@ export async function registerUser(email, password, firstName, lastName, selecte
 /**
  * Inicia sesión con Email y Contraseña
  */
-export async function loginUser(email, password) {
+export async function loginUser(email, password, rememberMe = false) {
+  let user;
   try {
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    user = userCredential.user;
 
-    let role = determineRole(email, "cliente");
-    try {
-      const userDocRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userDocRef);
-
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        role = data.role || role;
-        // Actualizar rol a superadmin si aplica
-        if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email.toLowerCase()) && role !== "superadmin") {
-          role = "superadmin";
-          await setDoc(userDocRef, { role: "superadmin" }, { merge: true });
-        }
-      } else {
-        // Usuario existe en Auth pero no en Firestore — crearlo
-        const nameParts = (user.displayName || "").split(" ");
-        const firstName = nameParts[0] || email.split("@")[0];
-        const lastName = nameParts.slice(1).join(" ") || "";
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          firstName,
-          lastName,
-          username: buildUsername(firstName, email),
-          role,
-          createdAt: serverTimestamp()
-        });
-      }
-    } catch (fsError) {
-      console.warn("Firestore no disponible al iniciar sesión:", fsError);
+    const userDocRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+    if (!userSnap.exists()) {
+      throw new Error(PROFILE_REQUIRED_MESSAGE);
     }
+    const role = determineRole(email, userSnap.data().role);
 
     return { success: true, user, role };
   } catch (error) {
+    console.error("Error al iniciar sesión:", error);
+    if (user) {
+      try {
+        await signOut(auth);
+      } catch (signOutError) {
+        console.error("No se pudo cerrar la sesión tras fallar la carga del perfil:", signOutError);
+      }
+    }
     return { success: false, message: parseAuthError(error) };
   }
 }
 
 /**
- * Inicia sesión / Registro mediante Google
+ * Inicia sesión con Google para perfiles que ya existen en Firestore.
  */
-export async function loginWithGoogle(selectedRole = "cliente") {
+export async function loginWithGoogle(rememberMe = false, allowRegistration = false) {
+  let user;
+  let isNewUser = false;
   try {
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    user = result.user;
+    isNewUser = getAdditionalUserInfo(result)?.isNewUser === true;
 
-    let role = determineRole(user.email, selectedRole);
-    try {
-      const userDocRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userDocRef);
-
-      if (userSnap.exists()) {
-        role = userSnap.data().role || role;
-      } else {
-        const nameParts = (user.displayName || "").split(" ");
-        const firstName = nameParts[0] || user.email.split("@")[0];
-        const lastName = nameParts.slice(1).join(" ") || "";
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          firstName,
-          lastName,
-          username: buildUsername(firstName, user.email),
-          role,
-          createdAt: serverTimestamp()
-        });
+    const userDocRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+    if (!userSnap.exists()) {
+      if (!allowRegistration || !REGISTRATION_ENABLED || !isNewUser || !user.email) {
+        throw new Error(PROFILE_REQUIRED_MESSAGE);
       }
-    } catch (fsError) {
-      console.warn("Firestore inaccesible en Google Login:", fsError);
+      const nameParts = (user.displayName || "").trim().split(/\s+/);
+      const firstName = (nameParts[0] || user.email.split("@")[0]).slice(0, 80);
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        firstName,
+        lastName: nameParts.slice(1).join(" ").slice(0, 120),
+        username: buildUsername(firstName, user.email),
+        role: "cliente",
+        createdAt: serverTimestamp()
+      });
     }
+    const role = determineRole(user.email, userSnap.data().role);
 
     return { success: true, user, role };
   } catch (error) {
     console.error("Error al iniciar con Google:", error);
+    if (user) {
+      if (isNewUser) {
+        try {
+          await deleteUser(user);
+          user = null;
+        } catch (rollbackError) {
+          console.error("No se pudo eliminar la cuenta de Google creada sin perfil:", rollbackError);
+        }
+      }
+    }
+    if (user) {
+      try {
+        await signOut(auth);
+      } catch (signOutError) {
+        console.error("No se pudo cerrar la sesión tras fallar el perfil de Google:", signOutError);
+      }
+    }
     return { success: false, message: parseAuthError(error), code: error.code };
   }
 }
 
 /**
  * Cierra la sesión activa.
- * Limpia TODO el estado local para evitar que el usuario vuelva atrás y acceda.
+ * Cierra la sesión mantenida por Firebase Authentication.
  */
 export async function logoutUser() {
-  // Limpiar todo el estado de sesión local/temporal
-  sessionStorage.clear();
-  localStorage.removeItem("paynex_temp_user");
+  await signOut(auth);
+}
 
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.error("Error al cerrar sesión:", error);
-  }
-  // Reemplazar el historial para que el botón "atrás" no regrese al dashboard
-  window.location.replace("login.html");
+export async function resetPassword(email) {
+  await sendPasswordResetEmail(auth, email);
 }
 
 /**
  * Escucha cambios en el estado de autenticación.
  * SIEMPRE usa Firebase onAuthStateChanged como fuente de verdad.
- * El sessionStorage solo se usa como caché de datos adicionales del perfil.
  */
-export function checkAuthState(callback) {
+export function checkAuthState(callback, onProfileError) {
   return onAuthStateChanged(auth, async (firebaseUser) => {
-    if (!firebaseUser) {
-      // Sin sesión real en Firebase → limpiar caché y denegar acceso
+    try {
       sessionStorage.removeItem("paynex_temp_user");
+    } catch (error) {
+      console.warn("No se pudo limpiar el perfil temporal heredado:", error);
+    }
+    if (!firebaseUser) {
       callback(null, null);
       return;
     }
 
-    // Hay sesión real en Firebase → cargar datos de Firestore
+    // Firestore is required for the profile and role used by the application.
     let userData = {
       firstName: "",
       lastName: "",
@@ -226,21 +285,21 @@ export function checkAuthState(callback) {
       const userSnap = await getDoc(userDocRef);
       if (userSnap.exists()) {
         const firestoreData = userSnap.data();
-        // Firestore es la fuente de verdad para nombre, rol y username
         userData = {
           ...userData,
-          ...firestoreData
+          firstName: firestoreData.firstName || userData.firstName,
+          lastName: firestoreData.lastName || userData.lastName,
+          username: firestoreData.username || userData.username,
+          photoURL: firestoreData.photoURL || userData.photoURL,
+          role: determineRole(firebaseUser.email, firestoreData.role)
         };
+      } else {
+        throw new Error("El perfil del usuario no existe en Firestore.");
       }
-    } catch (fsError) {
-      console.warn("No se pudo leer Firestore en checkAuthState:", fsError);
-      // Intentar recuperar del caché de sesión como fallback
-      try {
-        const cached = JSON.parse(sessionStorage.getItem("paynex_temp_user") || "null");
-        if (cached && cached.email === firebaseUser.email) {
-          userData = { ...userData, ...cached };
-        }
-      } catch (_) {}
+    } catch (error) {
+      console.error("No se pudo verificar el perfil en Firestore:", error);
+      onProfileError(error);
+      return;
     }
 
     // Si firstName sigue vacío, usar displayName de Google o parte del email
@@ -254,13 +313,6 @@ export function checkAuthState(callback) {
     if (!userData.username) {
       userData.username = buildUsername(userData.firstName, firebaseUser.email);
     }
-
-    // Guardar en caché de sesión para recuperación offline
-    sessionStorage.setItem("paynex_temp_user", JSON.stringify({
-      ...userData,
-      uid: firebaseUser.uid,
-      email: firebaseUser.email
-    }));
 
     callback(firebaseUser, userData);
   });

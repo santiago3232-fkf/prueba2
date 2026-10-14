@@ -15,7 +15,7 @@
   const BOT_CONFIG = {
     botName: "Nexy",
     botTitle: "Asistente PayNex",
-    botStatus: "En línea • Ayuda 24/7",
+    botStatus: "Asistente automático",
     avatarImg: "img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png",
     supportEmail: "san.18gutierrez@gmail.com",
     supportPhone: "3224045855",
@@ -23,215 +23,151 @@
     supportWhatsapp: "573224045855",
     supportWhatsappFormatted: "+57 322 404 5855",
     leaderName: "Santiago Gutiérrez",
-    storageKey: "paynex_chat_history_v2",
-    storageMuteKey: "paynex_chat_muted_v1",
     maxInputChars: 400,
     typingDelayMs: 650
   };
 
-  // Base de conocimiento exhaustiva y estructurada de PayNex según su modelo institucional
+  ["paynex_chat_history_v2", "paynex_chat_muted_v1"].forEach(key => {
+    try {
+      localStorage.removeItem(key);
+    } catch (error) {
+      console.error(`No se pudo eliminar el dato local heredado ${key}:`, error);
+    }
+  });
+
+  // Respuestas limitadas a las funciones y condiciones publicadas de PayNex
   const KNOWLEDGE_BASE = [
     {
       keywords: ["hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "saludos", "hey", "inicio"],
-      response: `¡Hola! Soy **${BOT_CONFIG.botName}**, el asistente oficial de **PayNex** 🚀\n\n` +
-        `En PayNex nos especializamos en la **logística de e-commerce y mediación para que jóvenes y menores de edad puedan emprender** y generar ingresos de forma segura.\n\n` +
+      response: `¡Hola! Soy **${BOT_CONFIG.botName}**, el asistente informativo de **PayNex** 🚀\n\n` +
+        `Puedes explorar los productos publicados y conocer las herramientas para vendedores. Las compras, los pagos y los envíos aún no están habilitados.\n\n` +
         `¿En qué puedo orientarte hoy?`,
       chips: ["📞 Contacto Directo", "🌟 ¿Qué es PayNex?", "🛍️ Productos", "🚀 ¿Cómo Vender?"]
     },
     {
       keywords: ["contacto", "telefono", "whatsapp", "correo", "email", "soporte", "asesor", "hablar con", "atencion", "comunicarme", "numero", "donde estan", "oficina", "llamar", "celular", "santiago", "gutierrez"],
-      response: `📞 **Canales Oficiales de Contacto PayNex**:\n\n` +
-        `• 📱 **WhatsApp Oficial:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20informaci%C3%B3n%20sobre%20PayNex)\n` +
+      response: `📞 **Datos de contacto publicados**:\n\n` +
+        `• 📱 **WhatsApp:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20informaci%C3%B3n%20sobre%20PayNex)\n` +
         `• ☎️ **Teléfono / Llamadas:** [${BOT_CONFIG.supportPhone}](tel:${BOT_CONFIG.supportPhone})\n` +
         `• ✉️ **Correo Electrónico:** [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail})\n` +
-        `• 👤 **Atención Directa:** Santiago Gutiérrez (Líder del proyecto) y equipo PayNex.\n` +
-        `• ⏰ **Horario:** Lunes a Sábado de 8:00 AM a 7:00 PM\n` +
-        `• 🇨🇴 **Cobertura:** Envíos y soporte a nivel nacional en toda Colombia.`,
+        `• Los tiempos de respuesta y la cobertura de envíos están por confirmar.`,
       chips: ["💬 Abrir WhatsApp", "📞 Llamar ahora", "✉️ Enviar correo", "🛍️ Ver Productos"]
     },
     {
       keywords: ["que es paynex", "que es painex", "painex", "paynex", "de que trata", "que hacen", "plataforma", "para que sirve", "sobre ustedes", "servicio", "empresa de tecnologia"],
-      response: `🌟 **¿Qué es PayNex? (Logística de E-commerce y Tecnología)**\n\n` +
-        `**PayNex** es una empresa de tecnología y logística de vendedores de productos (e-commerce).\n\n` +
-        `Ofrecemos un **servicio exclusivo de representación y mediación de jóvenes menores de edad a ventas** por medio de nuestra aplicación, para asegurar el bienestar y las ganancias de nuestros usuarios.\n\n` +
-        `💡 Ayudamos a los jóvenes a emprender en un **alto nivel de negocio digital**, generando ingresos de manera segura, efectiva y complaciendo las necesidades y preferencias de nuestros clientes.`,
+      response: `🌟 **¿Qué es PayNex?**\n\n` +
+        `PayNex es un proyecto de marketplace para explorar productos y publicar catálogos de vendedores. Esta versión aún no procesa compras, pagos, retiros ni envíos.`,
       chips: ["🎯 Misión y Visión", "💡 Problemática que resolvemos", "💎 Valores Corporativos", "🚀 ¿Cómo Emprender?"]
     },
     {
       keywords: ["problematica", "problema", "por que nacio", "por que crearon", "que solucionan", "origen", "motivo"],
-      response: `💡 **Problemática que Soluciona PayNex**:\n\n` +
-        `Nuestra problemática comienza siendo menores de edad: muchos jóvenes quieren **generar ingresos de manera virtual**, pero las plataformas existentes les exigen requisitos excluyentes o complejos, pidiendo veracidad de datos e incluso cuentas bancarias que los menores no poseen.\n\n` +
-        `🤝 **La Solución PayNex:** Actuamos como puente legal, mediador y representante tecnológico para garantizar que los jóvenes puedan comercializar productos, asegurar sus ganancias y contar con un ecosistema seguro tanto para compradores como para vendedores.`,
-      chips: ["👶 Menores de Edad", "🎯 Objetivos", "📞 Contactar Asesor"]
+      response: `💡 **Condiciones de uso**:\n\n` +
+        `Si eres menor de edad, consulta con tu madre, padre o tutor antes de crear una cuenta o usar servicios comerciales en línea.`,
+      chips: ["👶 Menores de edad", "📞 Contacto", "🔑 Iniciar sesión"]
     },
     {
       keywords: ["menores de edad", "menor de edad", "puedo vender si soy menor", "menor", "edad minima", "requisitos edad", "jovenes", "adolescentes", "cuentas bancarias"],
       response: `👶 **¿Puedo vender y emprender si soy menor de edad?**\n\n` +
-        `¡Sí, totalmente! Ese es el **propósito fundamental de PayNex**.\n\n` +
-        `• Te representamos y mediamos tus ventas de forma transparente y legal.\n` +
-        `• No te dejamos fuera por no tener cuenta bancaria tradicional de adulto.\n` +
-        `• Protegemos tus ingresos y te damos herramientas para administrar tus productos y pedidos desde un panel intuitivo.\n` +
-        `• Cuidamos tu bienestar en cada transacción.`,
-      chips: ["🚀 Empezar a Vender", "📞 Hablar con Santiago", "🛡️ Seguridad"]
+        `No podemos confirmar requisitos legales o de edad para vender. PayNex no ofrece representación legal; si eres menor, consulta primero con tu madre, padre o tutor y con asesoría legal local. Esta versión tampoco procesa pagos ni pedidos.`,
+      chips: ["📦 Estado de pedidos", "📞 Contacto", "🔑 Iniciar sesión"]
     },
     {
       keywords: ["mision", "nuestra mision", "cual es la mision"],
-      response: `🎯 **Nuestra Misión en PayNex**:\n\n` +
-        `"Al día de hoy nuestra misión es **ayudar a nuestros jóvenes para que puedan generar ingresos de manera virtual**, garantizando la seguridad de cada usuario que integre nuestra empresa, desde los vendedores hasta los clientes."`,
+      response: `🎯 **PayNex** es un proyecto en desarrollo para consultar publicaciones y administrar catálogos. Esta descripción no implica garantías de seguridad, ventas ni resultados. Actualmente no se procesan compras, pagos ni envíos.`,
       chips: ["🔭 Nuestra Visión", "💎 Valores Corporativos", "🚀 Emprender"]
     },
     {
       keywords: ["vision", "nuestra vision", "cual es la vision", "futuro"],
-      response: `🔭 **Nuestra Visión en PayNex**:\n\n` +
-        `• Ser una empresa conocida a nivel Colombia y a nivel mundial reconocida por nuestra versatilidad.\n` +
-        `• Lograr a corto plazo al menos **20 clientes activos al día** para brindar un servicio de máxima calidad y utilidad para nuestros clientes y usuarios.`,
+      response: `🔭 **Estado del proyecto**:\n\n` +
+        `PayNex está en desarrollo. No publicamos cifras verificadas de usuarios, ventas ni cobertura; los pedidos, pagos y envíos aún no están disponibles.`,
       chips: ["🎯 Objetivos", "💎 Valores Corporativos", "🛍️ Ver Productos"]
     },
     {
       keywords: ["valores", "valores corporativos", "principios", "filosofia"],
       response: `💎 **Valores Corporativos de PayNex**:\n\n` +
         `1️⃣ **Innovación:** Crear soluciones modernas y eficientes para nuestros usuarios.\n` +
-        `2️⃣ **Confianza:** Brindaremos seguridad en cada compra y pago a quienes usen nuestros servicios.\n` +
-        `3️⃣ **Compromiso:** Ofrecer la mejor experiencia al cliente, asegurando que todo sea con respeto y buena comunicación.`,
+        `2️⃣ **Transparencia:** Informar qué funciones están disponibles y cuáles siguen en desarrollo.\n` +
+        `3️⃣ **Compromiso:** Mejorar el catálogo y las herramientas para vendedores. Estos principios no son una garantía de seguridad o resultados comerciales.`,
       chips: ["🌟 ¿Qué es PayNex?", "🛡️ Seguridad y Pagos", "📞 Contacto"]
     },
     {
       keywords: ["objetivos", "objetivo general", "objetivos especificos", "metas"],
-      response: `📈 **Objetivos de PayNex**:\n\n` +
-        `🌐 **Objetivo General:**\n` +
-        `Ser una empresa a nivel mundial y reconocida por nuestra **versatilidad** e impacto en el e-commerce juvenil.\n\n` +
-        `🎯 **Objetivos Específicos:**\n` +
-        `• Lograr nuestra primera ganancia exitosa en un plazo de un mes.\n` +
-        `• Demostrar nuestra viabilidad financiera y operativa.\n` +
-        `• Ser una oportunidad real y accesible de generar dinero.\n` +
-        `• Posicionarnos dentro de las 50 apps más usadas en Colombia.\n` +
-        `• Ser utilizada por más de un estrato socioeconómico sin barreras.`,
+      response: `📈 **Estado de PayNex**:\n\n` +
+        `El proyecto está en desarrollo y no hay resultados comerciales, cifras de uso ni metas alcanzadas verificadas para compartir. En esta versión funcionan las publicaciones de productos para cuentas existentes.`,
       chips: ["🔭 Nuestra Visión", "🚀 ¿Cómo Vender?", "📞 Contacto"]
     },
     {
       keywords: ["equipo", "quienes forman", "fundadores", "creadores", "organigrama", "estructura", "santiago gutierrez", "daniel paez", "samuel paez", "jostin gonzales"],
-      response: `👥 **Estructura y Equipo de PayNex**:\n\n` +
-        `• 👑 **Líder / Fundador:** Santiago Gutiérrez\n` +
-        `• 💼 **Equipo Directivo y Operativo:**\n` +
-        `   - Samuel Páez\n` +
-        `   - Daniel Páez\n` +
-        `   - Jostin González\n\n` +
-        `Un equipo apasionado y enfocado en transformar el futuro del comercio digital para los jóvenes.`,
+      response: `👥 PayNex es un proyecto en desarrollo. Para consultas sobre el catálogo o una cuenta existente, utiliza los datos de contacto publicados en esta página.`,
       chips: ["📞 Contactar con Santiago", "🌟 Sobre PayNex", "🛍️ Tienda"]
     },
     {
       keywords: ["producto painex", "producto paynex", "productos painex", "productos paynex", "informacion painex", "informacion paynex", "informacion del producto"],
-      response: `✨ **Información Integral de PayNex**:\n\n` +
-        `• **Plataforma / Producto:** Ecosistema tecnológico de mediación y logística e-commerce para jóvenes emprendedores.\n` +
-        `• **Catálogo Disponible:** iPhone 15 Pro, calzado deportivo urbano, smartwatches, perfumes y accesorios.\n` +
-        `• **Seguridad Garantizada:** Compra protegida, respaldo antifraude y garantía de satisfacción.\n` +
-        `• **Contacto Oficial:** WhatsApp y teléfono al [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o correo [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail}).\n\n` +
-        `¿Deseas ver la tienda online o saber cómo empezar a vender?`,
+      response: `✨ **PayNex** es un marketplace en desarrollo. El catálogo muestra los productos publicados en la plataforma; verifica precio y disponibilidad con el vendedor. Las compras y pagos todavía no están habilitados.\n\n` +
+        `• **Contacto:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail}).`,
       chips: ["🏬 Ver Tienda", "📞 Contactar Asesor", "🚀 ¿Cómo Vender?"]
     },
     {
       keywords: ["productos", "catalogo", "articulos", "que venden", "precios", "tienda", "disponibles", "comprar productos", "que productos tienen"],
-      response: `🛍️ **Catálogo y Productos Destacados en PayNex:**\n\n` +
-        `• 📱 **iPhone 15 Pro** - Tecnología | **$1.250.000 COP** *(Más vendido)*\n` +
-        `• 👟 **Tenis Deportivos** - Moda | **$180.000 COP** *(Excelente calidad)*\n` +
-        `• ⌚ **Smartwatch Serie 8** - Tecnología | **$250.000 COP**\n` +
-        `• 🌸 **Perfume L'Essence** - Belleza | **$135.000 COP**\n` +
-        `• 🎒 **Morral Urbano** - Accesorios | **$90.000 COP**\n\n` +
-        `Puedes ver todos los detalles, filtrar por categorías y pedir directamente en nuestra tienda.`,
-      chips: ["🏬 Ir a la Tienda", "💳 Métodos de Pago", "📦 Envíos"]
+      response: `Consulta el catálogo para ver los productos, precios e inventario que los vendedores han publicado. Las compras, pagos y envíos aún no están habilitados.`,
+      chips: ["🏬 Ir a la Tienda", "💳 Estado de pagos", "📦 Envíos"]
     },
     {
       keywords: ["iphone", "celular", "telefono movil"],
-      response: `📱 **iPhone 15 Pro en PayNex**:\n` +
-        `• **Precio:** $1.250.000 COP\n` +
-        `• **Garantía:** 12 meses oficial\n` +
-        `• **Envío:** Gratis a nivel nacional\n` +
-        `• **Vendedor:** Verificado por PayNex\n\n` +
-        `¿Deseas explorar este y otros artículos en la tienda?`,
+      response: `Consulta el catálogo para conocer el precio y la disponibilidad actual de este producto. PayNex no verifica vendedores ni gestiona pagos o envíos en esta versión.`,
       chips: ["🏬 Ir a la Tienda", "📞 Contactar Asesor"]
     },
     {
       keywords: ["tenis", "zapatos", "calzado", "sneakers"],
-      response: `👟 **Tenis Deportivos Urbanos**:\n` +
-        `• **Precio:** $180.000 COP\n` +
-        `• **Tallas:** 36 a 43 disponibles\n` +
-        `• **Material:** Suela ergonómica de alto impacto y tela transpirable\n` +
-        `• **Envío:** A todo el país`,
+      response: `Consulta la ficha del producto y confirma con el vendedor el precio, las tallas y la disponibilidad. Los envíos aún no están configurados en PayNex.`,
       chips: ["🏬 Ir a la Tienda", "📦 Tiempos de Entrega"]
     },
     {
       keywords: ["smartwatch", "reloj", "serie 8"],
-      response: `⌚ **Smartwatch Serie 8**:\n` +
-        `• **Precio:** $250.000 COP\n` +
-        `• **Funciones:** Monitor cardíaco, notificaciones WhatsApp, resistente al agua y batería de larga duración.`,
-      chips: ["🏬 Ir a la Tienda", "🛡️ Garantía"]
+      response: `Consulta las publicaciones actuales para ver productos, precios e inventario. PayNex no verifica las características ni la disponibilidad declarada por cada vendedor.`,
+      chips: ["🏬 Ir al catálogo", "📞 Contacto"]
     },
     {
       keywords: ["vender", "emprender", "vendedor", "publicar", "como vendo", "ganar dinero", "comisiones", "subir producto", "mi negocio"],
-      response: `🚀 **¿Cómo empezar a vender en PayNex?**\n\n` +
-        `1️⃣ **Regístrate:** Crea tu cuenta en minutos en [login.html#register](login.html#register).\n` +
-        `2️⃣ **Entra a tu Panel:** Ve a la sección *"Mis ventas"* en tu panel de control.\n` +
-        `3️⃣ **Publica tus productos:** Sube fotos, descripción, precio y stock.\n` +
-        `4️⃣ **Recibe pedidos y pagos:** Notificamos cada venta y recibes tus ganancias sin complicaciones.\n\n` +
-        `¡No necesitas experiencia previa ni cuentas bancarias complejas! PayNex está diseñado para mediar y proteger tu talento.`,
-      chips: ["📝 Registrarme Gratis", "📞 Soporte a Vendedores", "💳 Pagos y Retiros"]
+      response: `Puedes crear una cuenta de vendedor y administrar productos desde "Mis ventas". Las publicaciones no habilitan pedidos, pagos ni envíos.`,
+      chips: ["🔑 Iniciar sesión", "📞 Contacto", "💳 Estado de pagos"]
     },
     {
       keywords: ["comprar", "como compro", "hacer pedido", "carrito", "adquirir", "orden"],
-      response: `🛒 **¿Cómo comprar en PayNex?**\n\n` +
-        `1. Navega por la [Tienda / Catálogo](dashboard.html).\n` +
-        `2. Selecciona el producto que más te guste.\n` +
-        `3. Haz clic en comprar o agrégalo a tu lista.\n` +
-        `4. Ingresa tus datos de envío y elige tu método de pago.\n` +
-        `5. ¡Listo! Recibirás la guía de seguimiento para rastrear tu paquete.`,
-      chips: ["🏬 Explorar Tienda", "💳 Métodos de Pago", "🛡️ Compras Seguras"]
+      response: `Puedes explorar productos y guardarlos en el carrito, pero esta versión no completa compras, recoge direcciones ni procesa pagos. No envíes datos financieros.`,
+      chips: ["🏬 Explorar Tienda", "💳 Estado de pagos", "📞 Contacto"]
     },
     {
       keywords: ["seguridad", "seguro", "confiable", "estafa", "garantia", "fraude", "devolucion", "protegido", "confianza"],
-      response: `🛡️ **Compras y Ventas 100% Seguras en PayNex**:\n\n` +
-        `• **Compra Protegida:** Tu dinero se resguarda hasta que recibes tu producto a conformidad.\n` +
-        `• **Vendedores Verificados:** Validamos la identidad de cada emprendedor.\n` +
-        `• **Transacciones Encriptadas:** Certificado SSL y pasarela de pago segura de estándar bancario.\n` +
-        `• **Garantía de Devolución:** 10 días para solicitar cambio o reembolso si no coincide con lo ofrecido.`,
-      chips: ["📦 Envíos Seguros", "📞 Soporte", "🛍️ Ver Productos"]
+      response: `Esta versión no procesa pagos, protege fondos, verifica identidades ni gestiona devoluciones. No compartas datos de tarjetas, cuentas bancarias ni documentos personales en el chat. Las publicaciones están sujetas a las reglas de Firestore configuradas por el proyecto.`,
+      chips: ["📦 Estado de envíos", "📞 Contacto", "🛍️ Ver Productos"]
     },
     {
       keywords: ["envio", "envios", "domicilio", "entrega", "cuanto demora", "tiempo de entrega", "transportadora", "ciudades", "bogota", "medellin", "cali"],
-      response: `📦 **Política de Envíos PayNex**:\n\n` +
-        `• **Cobertura:** Despachamos a todas las ciudades y municipios del país 🇨🇴.\n` +
-        `• **Tiempos de entrega:**\n` +
-        `   - Ciudades principales: **2 a 4 días hábiles**\n` +
-        `   - Otras zonas: **3 a 6 días hábiles**\n` +
-        `• **Rastreo:** Podrás seguir tu paquete en tiempo real con número de guía en la sección *"Mis compras"*.\n` +
-        `• **Aliados:** Coordinadora, Servientrega e Interrapidísimo.`,
-      chips: ["🛍️ Comprar Ahora", "🛡️ Compras Seguras", "📞 Preguntar por un Pedido"]
+      response: `PayNex aún no tiene operadores, cobertura, tarifas ni tiempos de envío configurados. Confirma las condiciones directamente con el vendedor antes de acordar una compra.`,
+      chips: ["🛍️ Ver catálogo", "💳 Estado de pagos", "📞 Contacto"]
     },
     {
       keywords: ["pago", "pagos", "metodos de pago", "tarjeta", "nequi", "daviplata", "pse", "efectivo", "bancolombia"],
-      response: `💳 **Métodos de Pago Disponibles**:\n\n` +
-        `Aceptamos múltiples opciones para tu comodidad:\n` +
-        `• **Billeteras Digitales:** Nequi y Daviplata\n` +
-        `• **PSE:** Transferencia desde cualquier banco colombiano\n` +
-        `• **Tarjetas:** Crédito y Débito (Visa, Mastercard, Amex)\n` +
-        `• **Saldo PayNex:** Si vendes, puedes usar tus ganancias para comprar directamente.`,
+      response: `No hay métodos de pago habilitados en PayNex todavía. No envíes dinero ni datos de pago a través de este sitio.`,
       chips: ["🛡️ Seguridad de Pagos", "🏬 Ir a la Tienda"]
     },
     {
       keywords: ["registro", "cuenta", "iniciar sesion", "login", "registrarse", "olvide mi contraseña", "olvide clave", "acceder"],
       response: `🔑 **Gestión de Cuenta PayNex**:\n\n` +
         `• Para iniciar sesión: [login.html](login.html)\n` +
-        `• Para crear una cuenta nueva: [login.html#register](login.html#register)\n` +
+        `• Puedes crear una cuenta desde la pantalla de registro.\n` +
         `• Si olvidaste tu contraseña, desde la pantalla de login puedes restablecerla con tu correo electrónico.`,
-      chips: ["🔑 Iniciar Sesión", "📝 Registrarme", "📞 Ayuda con mi Cuenta"]
+      chips: ["🔑 Iniciar Sesión", "📞 Ayuda con mi Cuenta"]
     },
     {
       keywords: ["gracias", "muchas gracias", "vale", "perfecto", "genial", "listo", "ok", "excelente"],
-      response: `¡Con mucho gusto! 😊 En **PayNex** creemos firmemente en el talento de los jóvenes. Si tienes más dudas, contáctanos al WhatsApp **${BOT_CONFIG.supportPhoneFormatted}** o al correo **${BOT_CONFIG.supportEmail}**. ¡Muchos éxitos! ✨`,
+      response: `¡Con mucho gusto! 😊 En **PayNex** creemos en el talento de quienes emprenden. Si tienes más dudas, contáctanos al WhatsApp **${BOT_CONFIG.supportPhoneFormatted}** o al correo **${BOT_CONFIG.supportEmail}**. ¡Muchos éxitos! ✨`,
       chips: ["📞 Contactar Asesor", "🛍️ Ver Productos", "🚀 Emprender"]
     },
     {
       keywords: ["adios", "chao", "hasta luego", "bye"],
-      response: `¡Hasta luego! Recuerda que estoy aquí 24/7 para asistirte en **PayNex**. ¡Mucho éxito en tus compras y emprendimientos! 👋`,
+      response: `¡Hasta luego! Puedes volver a consultar este asistente cuando quieras. Ten presente que las compras y los pagos aún no están habilitados. 👋`,
       chips: ["Reiniciar conversación"]
     }
   ];
@@ -374,7 +310,7 @@
     constructor() {
       this.isOpen = false;
       this.isTyping = false;
-      this.isMuted = localStorage.getItem(BOT_CONFIG.storageMuteKey) === "true";
+      this.isMuted = false;
       this.unreadCount = 0;
       this.messages = [];
       this.init();
@@ -486,7 +422,7 @@
 
           <!-- Banner Informativo -->
           <div class="pn-chat-welcome-banner">
-            <span>⚡ <strong>PayNex:</strong> Ayuda y Emprendimiento Juvenil</span>
+            <span>⚡ <strong>PayNex:</strong> Catálogo e información</span>
             <a href="https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20asistencia%20en%20PayNex" target="_blank" rel="noopener noreferrer" style="color: #16a34a; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:3px;">
               <span>WhatsApp (${BOT_CONFIG.supportPhone})</span> ↗
             </a>
@@ -524,7 +460,7 @@
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
-              PayNex Seguro • Compra, vende y emprende
+              Asistente informativo • No gestiona compras ni pagos
             </div>
           </footer>
         </section>
@@ -601,7 +537,6 @@
       // Botón Sonido
       this.dom.btnMute.addEventListener("click", () => {
         this.isMuted = !this.isMuted;
-        localStorage.setItem(BOT_CONFIG.storageMuteKey, this.isMuted ? "true" : "false");
         this.dom.muteIcon.innerHTML = this.getSoundIconSvg();
         this.dom.btnMute.title = this.isMuted ? "Activar sonido" : "Silenciar sonido";
       });
@@ -803,7 +738,6 @@
       };
       this.messages.push(userMsg);
       this.appendMessageToDOM(userMsg);
-      this.saveHistory();
 
       // 2. Mostrar indicador de escribiendo
       this.showTypingIndicator();
@@ -847,7 +781,7 @@
           });
         } else if (lowerQuery.includes("vender") || lowerQuery.includes("emprender") || lowerQuery.includes("registro")) {
           actionButtons.push({
-            text: "Crear Cuenta de Emprendedor",
+            text: "Ver estado del registro",
             url: "login.html#register",
             target: "_self",
             icon: "🚀"
@@ -864,7 +798,6 @@
         this.messages.push(botMsg);
         this.appendMessageToDOM(botMsg);
         this.renderSuggestions(match.chips || []);
-        this.saveHistory();
 
         // Sonido de notificación
         playBeepSound(this.isMuted);
@@ -911,37 +844,12 @@
       if (el) el.remove();
     }
 
-    saveHistory() {
-      try {
-        // Guardar únicamente los últimos 25 mensajes para mantener el almacenamiento ligero y seguro
-        const sliced = this.messages.slice(-25);
-        localStorage.setItem(BOT_CONFIG.storageKey, JSON.stringify(sliced));
-      } catch (e) {
-        // En caso de cuota excedida en localStorage
-      }
-    }
-
     loadHistory() {
-      try {
-        const saved = localStorage.getItem(BOT_CONFIG.storageKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            this.messages = parsed;
-            this.messages.forEach(msg => this.appendMessageToDOM(msg));
-            this.renderSuggestions(["📞 Contacto", "🛍️ Productos", "🚀 ¿Cómo Vender?", "🛡️ Seguridad y Pagos"]);
-            return;
-          }
-        }
-      } catch (e) {
-        this.messages = [];
-      }
-
-      // Si no hay historial, enviar mensaje de bienvenida inicial
       const welcomeMsg = {
         sender: "bot",
         text: `¡Hola! Bienvenido a **PayNex** 👋 Soy **${BOT_CONFIG.botName}**, tu asistente virtual.\n\n` +
-              `Somos la plataforma tecnológica de **logística e-commerce y mediación para que jóvenes y menores de edad puedan emprender y generar ingresos** con total seguridad.\n\n` +
+              `PayNex es un marketplace en desarrollo. Puedes explorar el catálogo y administrar publicaciones con una cuenta existente; los pagos, pedidos y envíos aún no están habilitados.\n\n` +
+              `No compartas datos bancarios, contraseñas ni documentos personales en este chat.\n\n` +
               `📞 **Contacto Directo:** WhatsApp / Tel al [**${BOT_CONFIG.supportPhoneFormatted}**](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o al correo [**${BOT_CONFIG.supportEmail}**](mailto:${BOT_CONFIG.supportEmail}).\n\n` +
               `¿En qué te gustaría que te ayude hoy?`,
         timestamp: new Date().toISOString()
@@ -949,11 +857,9 @@
       this.messages.push(welcomeMsg);
       this.appendMessageToDOM(welcomeMsg);
       this.renderSuggestions(["📞 Contacto Directo", "🌟 ¿Qué es PayNex?", "🛍️ Ver Productos", "🚀 ¿Cómo Vender?"]);
-      this.saveHistory();
     }
 
     resetChat() {
-      localStorage.removeItem(BOT_CONFIG.storageKey);
       this.messages = [];
       this.dom.messages.innerHTML = "";
       this.unreadCount = 0;

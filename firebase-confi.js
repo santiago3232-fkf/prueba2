@@ -7,7 +7,13 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile
+  getAdditionalUserInfo,
+  updateProfile,
+  deleteUser,
+  sendPasswordResetEmail,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import { 
   getFirestore, 
@@ -15,6 +21,7 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   serverTimestamp,
   collection,
   addDoc,
@@ -36,13 +43,6 @@ export const firebaseConfig = {
   measurementId: "G-SCX1NF6349"
 };
 
-// Configuración de los 3 Super Admin (correos autorizados con privilegios máximos)
-export const SUPER_ADMIN_EMAILS = [
-  "gonzalezdaravinajostinjair@gmail.com",
-  "samuelpaez0608@gmail.com",
-  "san.18gutierrez@gmail.com"
-];
-
 // Inicializar servicios Firebase
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -56,11 +56,18 @@ export {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
+  getAdditionalUserInfo,
   updateProfile,
+  deleteUser,
+  sendPasswordResetEmail,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  setPersistence,
   doc,
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   collection,
   addDoc,
