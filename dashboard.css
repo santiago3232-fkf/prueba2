@@ -1025,6 +1025,8 @@ body {
 .status-badge.pending { background: #fef3c7; color: #d97706; }
 .status-badge.sent { background: #e0e7ff; color: #4338ca; }
 .status-badge.delivered { background: #dcfce7; color: #15803d; }
+.status-badge.processing { background: #e0f2fe; color: #0369a1; }
+.status-badge.warehouse { background: #fef3c7; color: #b45309; }
 
 /* ================= VISTA: MIS VENTAS (VENDEDOR COMPLETO + FINANZAS) ================= */
 .seller-tabs-nav {

@@ -1,11 +1,20 @@
 import {
   checkAuthState,
   loginUser,
+  logoutUser,
   loginWithGoogle,
   REGISTRATION_ENABLED,
   registerUser,
   resetPassword
 } from "./auth.js";
+import { initTermsSimulator } from "./terms-simulator.js";
+
+initTermsSimulator({
+  onAccept: () => {
+    const check = document.getElementById("regAcceptTerms");
+    if (check) check.checked = true;
+  }
+});
 
 const loginCard = document.getElementById("loginCard");
 const registerCard = document.getElementById("registerCard");
@@ -63,12 +72,8 @@ checkAuthState(
     if (user) window.location.replace("dashboard.html");
   },
   error => {
-    console.error("No se pudo verificar el perfil al cargar el inicio de sesión:", error);
-    showAlert(
-      alertLogin,
-      "No se pudo comprobar tu perfil. Verifica tu conexión o contacta a soporte si el problema continúa.",
-      "error"
-    );
+    console.warn("Sesión previa no válida o expirada en pantalla de acceso:", error);
+    logoutUser().catch(() => {});
   }
 );
 
@@ -112,15 +117,23 @@ document.getElementById("registerForm").addEventListener("submit", async event =
       showAlert(alertRegister, "Las contraseñas no coinciden.", "error");
       return;
     }
+    const termsChecked = document.getElementById("regAcceptTerms")?.checked;
+    if (!termsChecked) {
+      showAlert(alertRegister, "Debes aceptar los Términos y Condiciones para registrarte.", "error");
+      return;
+    }
     const fullName = document.getElementById("regFullName").value.trim();
     const nameParts = fullName.split(/\s+/);
+    const rawUsername = (document.getElementById("regUsername")?.value || "").trim();
+    const cleanUser = rawUsername.replace(/^@/, "").replace(/[^a-zA-Z0-9_]/g, "");
+
     const result = await registerUser(
       document.getElementById("regEmail").value.trim(),
       password,
       nameParts[0] || "",
       nameParts.slice(1).join(" "),
       document.getElementById("regRole").value,
-      document.getElementById("regUsername").value.trim()
+      "@" + (cleanUser || nameParts[0] || "usuario")
     );
     if (result.success) {
       showAlert(alertRegister, "Cuenta registrada correctamente. Redirigiendo...", "success");
@@ -178,3 +191,14 @@ document.getElementById("forgotPasswordLink").addEventListener("click", async ev
     showAlert(alertLogin, "No fue posible enviar el correo. Revisa la dirección e inténtalo de nuevo.", "error");
   }
 });
+
+document.getElementById("linkOpenTermsModalReg")?.addEventListener("click", e => {
+  e.preventDefault();
+  window.openTermsSimulator?.("doc");
+});
+
+document.getElementById("btnOpenTermsSimReg")?.addEventListener("click", e => {
+  e.preventDefault();
+  window.openTermsSimulator?.("sim");
+});
+

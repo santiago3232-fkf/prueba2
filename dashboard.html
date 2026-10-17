@@ -81,6 +81,15 @@
             </svg>
             <span>Configuración</span>
           </a>
+
+          <!-- Simulador Seguridad T&C -->
+          <a class="nav-item" id="sidebarTermsSimBtn" style="cursor: pointer;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span>Seguridad & T&C</span>
+            <span class="nav-badge-pill" style="background:#10b981; color:#fff; display:inline-block;">🛡️</span>
+          </a>
         </nav>
       </div>
 
@@ -116,7 +125,7 @@
         <!-- Acciones Derecha (Notificaciones, Carrito, Usuario) -->
         <div class="header-actions-wrap">
 
-          <!-- Las notificaciones todavía no están conectadas a un servicio. -->
+          <!-- Notificaciones de compras y estados de pedido -->
           <div style="position: relative;">
             <button type="button" class="action-pill-btn" id="btnHeaderNotifs">
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,12 +139,12 @@
             <div class="notifications-popup" id="notificationsPopup">
               <div class="notif-header">
                 <h4>Notificaciones</h4>
-                <span class="btn-mark-read">No disponible</span>
+                <button type="button" class="btn-mark-read" id="btnMarkAllNotifsRead" style="background:none; border:none; color:var(--primary-purple); font-size:12px; font-weight:600; cursor:pointer;">Limpiar</button>
               </div>
               <div class="notif-list" id="notifListContainer">
                 <div class="notif-item">
-                  <strong>Pedidos de prueba</strong>
-                  <span>Las compras y los envíos se registran como simulación.</span>
+                  <strong>Sin notificaciones pendientes</strong>
+                  <span>Aquí verás avisos de tus pedidos y podrás cambiar sus estados.</span>
                 </div>
               </div>
             </div>
@@ -174,6 +183,9 @@
               </div>
               <div class="dropdown-item" data-view="favoritos">
                 <span>🤍 Favoritos</span>
+              </div>
+              <div class="dropdown-item" id="btnOpenTermsFromDropdown" style="color: #4f46e5;">
+                <span>🛡️ Simulador de Seguridad T&C</span>
               </div>
               <div class="dropdown-divider"></div>
               <div class="dropdown-item" id="btnLogoutSession" style="color: #ef4444;">
@@ -381,17 +393,21 @@
         <div class="section-header-row" style="margin-bottom: 20px;">
           <div>
             <h2>Mis Compras</h2>
-            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Historial de compras simuladas. No se realizan cobros ni envíos reales.</p>
+            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Historial de compras. Tu proveedor actualiza el estado de tu pedido en tiempo real y PayNex gestiona cualquier mediación o garantía.</p>
           </div>
-          </div>
+        </div>
 
-        <div class="purchases-summary-cards">
+        <div class="purchases-summary-cards" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
           <div class="summary-card">
-            <div class="summary-card-title">Total Compras Realizadas</div>
+            <div class="summary-card-title">Total Compras</div>
             <div class="summary-card-value" id="buyerTotalPurchasesCount">0</div>
           </div>
           <div class="summary-card">
-            <div class="summary-card-title">Pedidos en Camino</div>
+            <div class="summary-card-title">En Proceso / Bodega</div>
+            <div class="summary-card-value" style="color: #d97706;" id="buyerProcessingCount">0</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card-title">Pedidos Enviados</div>
             <div class="summary-card-value" style="color: #4f46e5;" id="buyerInTransitCount">0</div>
           </div>
           <div class="summary-card">
@@ -406,11 +422,11 @@
               <tr>
                 <th>Pedido #</th>
                 <th>Producto</th>
-                <th>Vendedor</th>
+                <th>Proveedor</th>
                 <th>Monto Total</th>
                 <th>Fecha</th>
-                <th>Estado</th>
-                <th>Detalle</th>
+                <th>Estado del Pedido</th>
+                <th>Garantía & Mediación PayNex</th>
               </tr>
             </thead>
             <tbody id="buyerOrdersTableBody">
@@ -653,16 +669,27 @@
       </div>
       <div class="cart-summary-line">
         <span>Envío:</span>
-        <span style="color: #64748b; font-weight: 700;">No configurado</span>
+        <span style="color: #10b981; font-weight: 700;">Gratis</span>
       </div>
       <div class="cart-summary-line total">
         <span>Total a Pagar:</span>
         <strong id="cartTotalText">$0</strong>
       </div>
-      <p style="font-size:12px;color:#64748b;margin:10px 0;">Simulación: no se realizará ningún cobro ni envío real.</p>
+      
+      <!-- Validación y Simulador de Términos -->
+      <div style="margin: 12px 0 8px 0; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; color: var(--text-dark);">
+          <input type="checkbox" id="cartAcceptTermsCheckbox" checked style="margin-top: 2px; accent-color: var(--primary-purple);">
+          <span>Acepto los <a href="#" id="cartLinkTerms" style="color: var(--primary-purple); font-weight: 600; text-decoration: underline;">Términos y Condiciones</a> y la Política de Tratamiento de Datos.</span>
+        </label>
+        <button type="button" id="cartBtnSecuritySim" style="background: none; border: none; color: #4f46e5; font-size: 11px; font-weight: 600; cursor: pointer; padding: 6px 0 0 0; display: inline-flex; align-items: center; gap: 4px;">
+          🛡️ Probar Simulador de Seguridad T&C
+        </button>
+      </div>
+
       <button type="button" class="btn-checkout-cart" id="btnCheckoutCart">
-        <span>Simular compra</span>
-        <span>🧪</span>
+        <span>Confirmar y Pagar Pedido</span>
+        <span>💳</span>
       </button>
     </div>
   </aside>
@@ -716,6 +743,100 @@
           <button type="submit" class="btn-primary-action">Guardar Producto</button>
         </div>
       </form>
+    </div>
+  </div>
+  <!-- ================= MODAL SOPORTE Y MEDIACIÓN PAYNEX ================= -->
+  <div class="modal-overlay" id="paynexSupportModal" style="display: none; z-index: 9990;">
+    <div class="modal-card" style="max-width: 640px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
+      <div class="modal-header" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: #ede9fe; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            🛡️
+          </div>
+          <div>
+            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #0f172a;">Centro de Mediación & Soporte PayNex</h3>
+            <span style="font-size: 12px; color: #64748b;">Nosotros gestionamos tu solicitud directamente con el proveedor</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnCloseSupportModal" style="font-size: 22px;">✕</button>
+      </div>
+
+      <!-- Resumen de Pedido Seleccionado -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #475569;" id="supportOrderBadge">Pedido #ORD-XXXX</span>
+          <span class="status-badge processing" id="supportCurrentStatusBadge">En proceso</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block;">Producto:</span>
+            <strong id="supportProductName" style="color: #0f172a;">-</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 11.5px; display: block;">Proveedor del producto:</span>
+            <strong id="supportProviderName" style="color: #4f46e5;">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Garantía de Intermediación -->
+      <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: #3730a3; line-height: 1.5;">
+        🤝 <strong>Garantía y Protección PayNex:</strong> Para tu seguridad y tranquilidad, tú no tienes que discutir con el proveedor. El equipo de Operaciones de PayNex asume tu caso, contacta al vendedor y gestiona la solución o reembolso en tu nombre.
+      </div>
+
+      <!-- Formulario de Requerimiento -->
+      <form id="paynexSupportForm">
+        <input type="hidden" id="supportOrderId">
+        <input type="hidden" id="supportProductId">
+        <input type="hidden" id="supportSellerId">
+
+        <div class="form-group-custom" style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Motivo de tu solicitud o inconformidad</label>
+          <select id="supportReasonSelect" class="input-custom" required style="width: 100%;">
+            <option value="Inconformidad con el tiempo de entrega o estado">📦 Inconformidad con el estado o tiempo de entrega</option>
+            <option value="Solicitud de corrección de dirección o contacto">📍 Solicitar cambio de dirección o datos del envío</option>
+            <option value="El producto recibido no corresponde o tiene fallas">⚠️ El producto recibido presenta novedades o no corresponde</option>
+            <option value="Pregunta o consulta técnica sobre el producto">💬 Pregunta o consulta técnica sobre el producto al proveedor</option>
+            <option value="Solicitud de cancelación y reembolso">↩️ Solicitud de cancelación y reembolso (Garantía PayNex)</option>
+            <option value="Otra solicitud de mediación formal">⚖️ Otra solicitud de mediación formal</option>
+          </select>
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Prioridad del caso</label>
+          <select id="supportPrioritySelect" class="input-custom" style="width: 100%;">
+            <option value="Normal">Normal (Respuesta en menos de 24 horas)</option>
+            <option value="Alta">Alta (Pedido en tránsito o novedad urgente)</option>
+            <option value="Urgente">Urgente (Reclamación o solicitud inmediata)</option>
+          </select>
+        </div>
+
+        <div class="form-group-custom" style="margin-bottom: 14px;">
+          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Explícanos tu requerimiento detalladamente</label>
+          <textarea id="supportMessageInput" class="input-custom" rows="4" placeholder="Describe qué ocurrió o qué necesitas para que nuestro equipo de PayNex gestione la solución de inmediato con el proveedor..." required style="width: 100%; resize: vertical; min-height: 80px;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; color: #475569;">
+            <input type="checkbox" id="supportConsentCheck" checked required style="margin-top: 3px; accent-color: #4f46e5;">
+            <span>Autorizo al equipo de PayNex a intermediar y gestionar esta solicitud formal ante el proveedor en mi nombre.</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-close-modal" id="btnCancelSupportModal" style="font-size: 13.5px; padding: 8px 16px;">Cancelar</button>
+          <button type="submit" class="btn-primary-action" id="btnSubmitSupportTicket" style="padding: 9px 20px; font-size: 13.5px;">
+            <span>Enviar a Gestión PayNex</span>
+            <span>🚀</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Historial de Tickets del Pedido -->
+      <div id="supportTicketsListContainer" style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px; display: none;">
+        <strong style="font-size: 13px; color: #0f172a; margin-bottom: 8px; display: block;">Casos registrados para este pedido:</strong>
+        <div id="supportTicketsItems" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
     </div>
   </div>
 

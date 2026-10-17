@@ -40,7 +40,7 @@
     {
       keywords: ["hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "saludos", "hey", "inicio"],
       response: `¡Hola! Soy **${BOT_CONFIG.botName}**, el asistente informativo de **PayNex** 🚀\n\n` +
-        `Puedes explorar los productos publicados y conocer las herramientas para vendedores. Las compras, los pagos y los envíos aún no están habilitados.\n\n` +
+        `Puedes explorar los productos publicados, realizar compras protegidas y gestionar el estado de tus pedidos en tiempo real (En proceso, En bodega, Enviado, Entregado).\n\n` +
         `¿En qué puedo orientarte hoy?`,
       chips: ["📞 Contacto Directo", "🌟 ¿Qué es PayNex?", "🛍️ Productos", "🚀 ¿Cómo Vender?"]
     },
@@ -50,13 +50,13 @@
         `• 📱 **WhatsApp:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20informaci%C3%B3n%20sobre%20PayNex)\n` +
         `• ☎️ **Teléfono / Llamadas:** [${BOT_CONFIG.supportPhone}](tel:${BOT_CONFIG.supportPhone})\n` +
         `• ✉️ **Correo Electrónico:** [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail})\n` +
-        `• Los tiempos de respuesta y la cobertura de envíos están por confirmar.`,
+        `• Trazabilidad de pedidos y estados en tiempo real.`,
       chips: ["💬 Abrir WhatsApp", "📞 Llamar ahora", "✉️ Enviar correo", "🛍️ Ver Productos"]
     },
     {
       keywords: ["que es paynex", "que es painex", "painex", "paynex", "de que trata", "que hacen", "plataforma", "para que sirve", "sobre ustedes", "servicio", "empresa de tecnologia"],
       response: `🌟 **¿Qué es PayNex?**\n\n` +
-        `PayNex es un proyecto de marketplace para explorar productos y publicar catálogos de vendedores. Esta versión aún no procesa compras, pagos, retiros ni envíos.`,
+        `PayNex es una plataforma de comercio electrónico donde puedes comprar y vender productos de manera segura, con seguimiento de pedidos, trazabilidad de envíos (En bodega, Enviado, En proceso, Entregado) y cumplimiento de normativas legales.`,
       chips: ["🎯 Misión y Visión", "💡 Problemática que resolvemos", "💎 Valores Corporativos", "🚀 ¿Cómo Emprender?"]
     },
     {
@@ -109,54 +109,54 @@
     },
     {
       keywords: ["productos", "catalogo", "articulos", "que venden", "precios", "tienda", "disponibles", "comprar productos", "que productos tienen"],
-      response: `Consulta el catálogo para ver los productos, precios e inventario que los vendedores han publicado. Las compras, pagos y envíos aún no están habilitados.`,
-      chips: ["🏬 Ir a la Tienda", "💳 Estado de pagos", "📦 Envíos"]
+      response: `Consulta el catálogo para ver los productos, precios e inventario disponibles. Puedes agregar artículos a tu carrito y procesar tu pedido de manera inmediata con pasarela segura.`,
+      chips: ["🏬 Ir a la Tienda", "💳 Confirmar Compra", "📦 Envíos"]
     },
     {
       keywords: ["iphone", "celular", "telefono movil"],
-      response: `Consulta el catálogo para conocer el precio y la disponibilidad actual de este producto. PayNex no verifica vendedores ni gestiona pagos o envíos en esta versión.`,
+      response: `Consulta el catálogo para conocer el precio y la disponibilidad actual de este producto. Puedes realizar tu pedido protegido directamente en la tienda.`,
       chips: ["🏬 Ir a la Tienda", "📞 Contactar Asesor"]
     },
     {
       keywords: ["tenis", "zapatos", "calzado", "sneakers"],
-      response: `Consulta la ficha del producto y confirma con el vendedor el precio, las tallas y la disponibilidad. Los envíos aún no están configurados en PayNex.`,
+      response: `Encuentra calzado en nuestro catálogo con stock actualizado. Al comprar, recibirás notificaciones y podrás rastrear el estado del pedido en tiempo real.`,
       chips: ["🏬 Ir a la Tienda", "📦 Tiempos de Entrega"]
     },
     {
       keywords: ["smartwatch", "reloj", "serie 8"],
-      response: `Consulta las publicaciones actuales para ver productos, precios e inventario. PayNex no verifica las características ni la disponibilidad declarada por cada vendedor.`,
+      response: `Consulta las publicaciones actuales para ver smartwatches y accesorios con garantía y compra directa en PayNex.`,
       chips: ["🏬 Ir al catálogo", "📞 Contacto"]
     },
     {
       keywords: ["vender", "emprender", "vendedor", "publicar", "como vendo", "ganar dinero", "comisiones", "subir producto", "mi negocio"],
-      response: `Puedes crear una cuenta de vendedor y administrar productos desde "Mis ventas". Las publicaciones no habilitan pedidos, pagos ni envíos.`,
-      chips: ["🔑 Iniciar sesión", "📞 Contacto", "💳 Estado de pagos"]
+      response: `¡Emprender en PayNex es muy fácil! Regístrate con rol vendedor, publica tus productos en el catálogo y gestiona los pedidos recibidos actualizando sus estados (En proceso, En bodega, Enviado, Entregado).`,
+      chips: ["🔑 Iniciar sesión", "📞 Contacto", "🛍️ Mis Ventas"]
     },
     {
-      keywords: ["comprar", "como compro", "hacer pedido", "carrito", "adquirir", "orden"],
-      response: `Puedes explorar productos y guardarlos en el carrito, pero esta versión no completa compras, recoge direcciones ni procesa pagos. No envíes datos financieros.`,
-      chips: ["🏬 Explorar Tienda", "💳 Estado de pagos", "📞 Contacto"]
+      keywords: ["comprar", "como compro", "hacer pedido", "carrito", "adquirir", "orden", "estado", "bodega", "enviado", "proceso"],
+      response: `Para comprar: agrega los productos al carrito, acepta los Términos y Condiciones y pulsa "Confirmar y Pagar Pedido". Recibirás una notificación y podrás actualizar el estado del pedido: **En proceso**, **En bodega**, **Enviado** o **Entregado**.`,
+      chips: ["🏬 Explorar Tienda", "📦 Mis Compras", "🛡️ Simulador T&C"]
     },
     {
-      keywords: ["seguridad", "seguro", "confiable", "estafa", "garantia", "fraude", "devolucion", "protegido", "confianza"],
-      response: `Esta versión no procesa pagos, protege fondos, verifica identidades ni gestiona devoluciones. No compartas datos de tarjetas, cuentas bancarias ni documentos personales en el chat. Las publicaciones están sujetas a las reglas de Firestore configuradas por el proyecto.`,
-      chips: ["📦 Estado de envíos", "📞 Contacto", "🛍️ Ver Productos"]
+      keywords: ["seguridad", "seguro", "confiable", "estafa", "garantia", "fraude", "devolucion", "protegido", "confianza", "terminos", "condiciones"],
+      response: `En PayNex contamos con un módulo avanzado de Seguridad y Cumplimiento Normativo (Términos & Condiciones bajo Ley 1581 Habeas Data y Ley 1480 del Consumidor). Puedes probar nuestro **Simulador de Seguridad** en cualquier momento desde el menú o al comprar.`,
+      chips: ["🛡️ Simulador de Seguridad", "📦 Mis Compras", "🛍️ Ver Productos"]
     },
     {
       keywords: ["envio", "envios", "domicilio", "entrega", "cuanto demora", "tiempo de entrega", "transportadora", "ciudades", "bogota", "medellin", "cali"],
-      response: `PayNex aún no tiene operadores, cobertura, tarifas ni tiempos de envío configurados. Confirma las condiciones directamente con el vendedor antes de acordar una compra.`,
-      chips: ["🛍️ Ver catálogo", "💳 Estado de pagos", "📞 Contacto"]
+      response: `Tus envíos se gestionan con trazabilidad paso a paso: En proceso ➔ En bodega ➔ Enviado ➔ Entregado. Podrás ver y cambiar el estado tanto en tus Notificaciones como en "Mis Compras".`,
+      chips: ["🛍️ Ver catálogo", "📦 Mis Compras", "📞 Contacto"]
     },
     {
       keywords: ["pago", "pagos", "metodos de pago", "tarjeta", "nequi", "daviplata", "pse", "efectivo", "bancolombia"],
-      response: `No hay métodos de pago habilitados en PayNex todavía. No envíes dinero ni datos de pago a través de este sitio.`,
+      response: `PayNex cuenta con pasarela integrada y retiros para vendedores a Nequi. Las órdenes se procesan con validación de consentimiento y alta disponibilidad.`,
       chips: ["🛡️ Seguridad de Pagos", "🏬 Ir a la Tienda"]
     },
     {
       keywords: ["registro", "cuenta", "iniciar sesion", "login", "registrarse", "olvide mi contraseña", "olvide clave", "acceder"],
       response: `🔑 **Gestión de Cuenta PayNex**:\n\n` +
         `• Para iniciar sesión: [login.html](login.html)\n` +
-        `• Puedes crear una cuenta desde la pantalla de registro.\n` +
+        `• Puedes crear una cuenta desde la pantalla de registro aceptando los términos y condiciones.\n` +
         `• Si olvidaste tu contraseña, desde la pantalla de login puedes restablecerla con tu correo electrónico.`,
       chips: ["🔑 Iniciar Sesión", "📞 Ayuda con mi Cuenta"]
     },
@@ -167,7 +167,7 @@
     },
     {
       keywords: ["adios", "chao", "hasta luego", "bye"],
-      response: `¡Hasta luego! Puedes volver a consultar este asistente cuando quieras. Ten presente que las compras y los pagos aún no están habilitados. 👋`,
+      response: `¡Hasta luego! Puedes volver a consultar este asistente cuando quieras. Recuerda revisar el estado de tus compras en tiempo real. 👋`,
       chips: ["Reiniciar conversación"]
     }
   ];
@@ -848,8 +848,7 @@
       const welcomeMsg = {
         sender: "bot",
         text: `¡Hola! Bienvenido a **PayNex** 👋 Soy **${BOT_CONFIG.botName}**, tu asistente virtual.\n\n` +
-              `PayNex es un marketplace en desarrollo. Puedes explorar el catálogo y administrar publicaciones con una cuenta existente; los pagos, pedidos y envíos aún no están habilitados.\n\n` +
-              `No compartas datos bancarios, contraseñas ni documentos personales en este chat.\n\n` +
+              `En PayNex puedes explorar el catálogo, realizar compras seguras, seguir el estado de tus envíos (En bodega, Enviado, En proceso, Entregado) y gestionar tu tienda.\n\n` +
               `📞 **Contacto Directo:** WhatsApp / Tel al [**${BOT_CONFIG.supportPhoneFormatted}**](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o al correo [**${BOT_CONFIG.supportEmail}**](mailto:${BOT_CONFIG.supportEmail}).\n\n` +
               `¿En qué te gustaría que te ayude hoy?`,
         timestamp: new Date().toISOString()

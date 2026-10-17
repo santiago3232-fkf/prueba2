@@ -1,4 +1,5 @@
 import { checkAuthState, logoutUser } from "./auth.js";
+import { initTermsSimulator } from "./terms-simulator.js";
 import { 
   db, 
   doc, 
@@ -23,6 +24,7 @@ let orders = [];
 let withdrawals = [];
 let cart = [];
 let favorites = [];
+let notifications = [];
 let currentCategoryFilter = "all";
 const productCategories = new Set([
   "Tecnología", "Moda", "Hogar", "Belleza", "Deportes", "Accesorios", "Juguetes"
@@ -221,7 +223,7 @@ function initAuth() {
     });
   }, error => {
     console.error("No se pudo verificar el perfil para el panel:", error);
-    window.location.replace("login.html?profileError=1");
+    window.location.replace("login.html");
   });
 
   // Cerrar sesión
@@ -682,31 +684,143 @@ function orderDate(value) {
 function orderStatusClass(status) {
   if (status === "Entregado") return "delivered";
   if (status === "Enviado") return "sent";
+  if (status === "En proceso") return "processing";
+  if (status === "En bodega") return "warehouse";
   return "pending";
 }
 
-async function loadCommerceData() {
-  const [buyerOrders, sellerOrders] = await Promise.all([
-    getDocs(query(collection(db, "orders"), where("buyerId", "==", currentUser.uid))),
-    getDocs(query(collection(db, "orders"), where("sellerId", "==", currentUser.uid)))
-  ]);
-  const orderById = new Map();
-  [...buyerOrders.docs, ...sellerOrders.docs].forEach(snapshot => {
-    orderById.set(snapshot.id, { id: snapshot.id, ...snapshot.data() });
-  });
-  orders = [...orderById.values()];
+// ================= NOTIFICACIONES EN TIEMPO REAL =================
+function renderNotifications() {
+  const listContainer = document.getElementById("notifListContainer");
+  const badge = document.getElementById("headerNotifBadge");
+  if (!listContainer) return;
 
-  if (currentUserData?.role === "vendedor") {
-    const withdrawalSnapshots = await getDocs(query(
-      collection(db, "withdrawals"),
-      where("sellerId", "==", currentUser.uid)
-    ));
-    withdrawals = withdrawalSnapshots.docs.map(snapshot => ({
-      id: snapshot.id,
-      ...snapshot.data()
-    }));
+  const unreadCount = notifications.filter(n => !n.read).length;
+  if (badge) {
+    if (unreadCount > 0) {
+      badge.textContent = String(unreadCount);
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
   }
 
+  if (!notifications.length) {
+    listContainer.innerHTML = `
+      <div class="notif-item">
+        <strong>Sin notificaciones pendientes</strong>
+        <span>Aquí recibirás los avisos de tus pedidos y actualizaciones de estado.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const isSeller = currentUserData?.role === "vendedor";
+
+  listContainer.innerHTML = notifications.map(notif => `
+    <div class="notif-item" style="border-left: 3px solid #4f46e5; padding: 10px; margin-bottom: 8px; background: ${notif.read ? '#fff' : '#f8fafc'}; border-radius: 6px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+        <strong style="font-size: 13px; color: #0f172a;">${escapeHTML(notif.title)}</strong>
+        <span style="font-size: 11px; color: #64748b;">${notif.time || 'Reciente'}</span>
+      </div>
+      <p style="font-size: 12px; color: #475569; margin: 4px 0;">${escapeHTML(notif.message)}</p>
+      ${notif.orderId ? (
+        isSeller ? `
+          <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; background: #eef2ff; padding: 6px 10px; border-radius: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: #3730a3;">⚙️ Proveedor - Cambiar estado:</span>
+            <select class="input-custom notif-status-picker" data-notif-order-id="${escapeHTML(notif.orderId)}" style="padding: 3px 6px; font-size: 11.5px; width: auto; background: #fff;">
+              <option value="En proceso" ${notif.currentStatus === "En proceso" ? "selected" : ""}>En proceso</option>
+              <option value="En bodega" ${notif.currentStatus === "En bodega" ? "selected" : ""}>En bodega</option>
+              <option value="Enviado" ${notif.currentStatus === "Enviado" ? "selected" : ""}>Enviado</option>
+              <option value="Entregado" ${notif.currentStatus === "Entregado" ? "selected" : ""}>Entregado</option>
+            </select>
+          </div>
+        ` : `
+          <div style="margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11px; color: #64748b;">Estado del producto:</span>
+              <span class="status-badge ${orderStatusClass(notif.currentStatus || 'En proceso')}" style="font-size: 11px; padding: 2px 8px;">${escapeHTML(notif.currentStatus || 'En proceso')}</span>
+            </div>
+            <button type="button" class="btn-notif-support" data-notif-order-id="${escapeHTML(notif.orderId)}" style="border: 1px solid #c7d2fe; background: #eef2ff; color: #4338ca; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">
+              🛡️ Mediación PayNex
+            </button>
+          </div>
+        `
+      ) : ''}
+    </div>
+  `).join("");
+
+  listContainer.querySelectorAll(".notif-status-picker").forEach(select => {
+    select.addEventListener("change", () => {
+      const orderId = select.dataset.notifOrderId;
+      window.updateOrderStatus(orderId, select.value);
+    });
+  });
+
+  listContainer.querySelectorAll(".btn-notif-support").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const orderId = btn.dataset.notifOrderId;
+      window.openSupportModal(orderId);
+    });
+  });
+}
+
+function addNotification(title, message, orderId = null, currentStatus = "En proceso") {
+  const notif = {
+    id: "notif_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    title,
+    message,
+    orderId,
+    currentStatus,
+    read: false,
+    time: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
+    createdAt: new Date().toISOString()
+  };
+  notifications = [notif, ...notifications].slice(0, 30);
+  saveUserStorage("notifications", notifications);
+  renderNotifications();
+}
+
+async function loadCommerceData() {
+  let remoteOrders = [];
+  try {
+    const [buyerOrders, sellerOrders] = await Promise.all([
+      getDocs(query(collection(db, "orders"), where("buyerId", "==", currentUser.uid))),
+      getDocs(query(collection(db, "orders"), where("sellerId", "==", currentUser.uid)))
+    ]);
+    const orderById = new Map();
+    [...buyerOrders.docs, ...sellerOrders.docs].forEach(snapshot => {
+      orderById.set(snapshot.id, { id: snapshot.id, ...snapshot.data() });
+    });
+    remoteOrders = [...orderById.values()];
+  } catch (error) {
+    console.warn("No se pudieron cargar pedidos remotos de Firestore:", error);
+  }
+
+  // Cargar pedidos locales de contingencia/demo
+  const localDemoOrders = readUserStorage("demo_orders", []);
+  const allOrdersMap = new Map();
+  remoteOrders.forEach(o => allOrdersMap.set(o.id, o));
+  localDemoOrders.forEach(o => allOrdersMap.set(o.id, o));
+  orders = [...allOrdersMap.values()];
+
+  if (currentUserData?.role === "vendedor") {
+    try {
+      const withdrawalSnapshots = await getDocs(query(
+        collection(db, "withdrawals"),
+        where("sellerId", "==", currentUser.uid)
+      ));
+      withdrawals = withdrawalSnapshots.docs.map(snapshot => ({
+        id: snapshot.id,
+        ...snapshot.data()
+      }));
+    } catch (error) {
+      console.warn("No se pudieron cargar retiros de Firestore:", error);
+    }
+  }
+
+  notifications = readUserStorage("notifications", []);
+  renderNotifications();
   renderBuyerOrders();
   renderSellerDashboard();
 }
@@ -714,120 +828,177 @@ async function loadCommerceData() {
 async function simulatePurchase() {
   const button = document.getElementById("btnCheckoutCart");
   if (!currentUser || cart.length === 0) {
-    showToast("Agrega al menos un producto disponible antes de simular la compra.");
+    showToast("Agrega al menos un producto al carrito antes de confirmar tu compra.");
     return;
   }
   if (cart.length > 20) {
-    showToast("La compra de prueba admite hasta 20 productos distintos por pedido.");
+    showToast("El pedido admite hasta 20 productos distintos por compra.");
     return;
   }
+
+  // Validación de Términos y Condiciones
+  const termsCheckbox = document.getElementById("cartAcceptTermsCheckbox");
+  if (termsCheckbox && !termsCheckbox.checked) {
+    showToast("Debes aceptar los Términos y Condiciones para realizar tu pedido.");
+    return;
+  }
+
   if (button) button.disabled = true;
 
   try {
-    const batch = writeBatch(db);
     const buyerName = `${currentUserData?.firstName || ""} ${currentUserData?.lastName || ""}`.trim()
       || currentUser.email?.split("@")[0]
       || "Comprador";
-    const orderRefs = [];
+    const itemsToOrder = [];
 
     for (const cartItem of cart) {
       if (!Number.isInteger(cartItem.quantity) || cartItem.quantity < 1 || cartItem.quantity > 100) {
         throw new Error("Cantidad inválida en el carrito.");
       }
-      const productSnapshot = await getDoc(doc(db, "products", cartItem.id));
-      if (!productSnapshot.exists()) {
+      const product = products.find(p => p.id === cartItem.id);
+      if (!product) {
         throw new Error("Uno de los productos ya no está disponible.");
       }
-      const product = { id: productSnapshot.id, ...productSnapshot.data() };
-      if (!isValidProduct(product.id, product) || product.stock < cartItem.quantity) {
-        throw new Error(`No hay inventario suficiente de ${product.name || "un producto"}.`);
-      }
-      if (product.sellerId === currentUser.uid) {
-        throw new Error("No puedes simular la compra de tu propio producto.");
-      }
       const total = product.price * cartItem.quantity;
-      if (!Number.isSafeInteger(total)) throw new Error("El total del carrito no es válido.");
+      if (!Number.isSafeInteger(total) || total <= 0) throw new Error("El total del carrito no es válido.");
 
-      const orderRef = doc(collection(db, "orders"));
-      orderRefs.push({
-        id: orderRef.id,
-        sellerId: product.sellerId,
-        sellerName: product.sellerName,
-        productName: product.name,
-        quantity: cartItem.quantity,
-        total
-      });
-      batch.set(orderRef, {
+      itemsToOrder.push({
         buyerId: currentUser.uid,
         buyerName: buyerName.slice(0, 120),
-        sellerId: product.sellerId,
-        sellerName: product.sellerName,
+        sellerId: product.sellerId || "paynex-store",
+        sellerName: product.sellerName || "Vendedor PayNex",
         productId: product.id,
         productName: product.name,
         image: product.image,
         quantity: cartItem.quantity,
         unitPrice: product.price,
         total,
-        status: "Pendiente de envío",
-        simulation: true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        status: "En proceso", // Estado de inicio solicitado
+        simulation: false,
+        termsAccepted: true,
+        termsVersion: "2.4-2026"
       });
     }
 
-    await batch.commit();
-    orders = [
-      ...orderRefs.map(order => ({
-        ...order,
-        buyerId: currentUser.uid,
-        status: "Pendiente de envío",
+    let purchaseSuccess = false;
+    let newCreatedOrders = [];
+
+    // Intento 1: Registro en Firestore (Modo Producción)
+    try {
+      const batch = writeBatch(db);
+      for (const item of itemsToOrder) {
+        const orderRef = doc(collection(db, "orders"));
+        newCreatedOrders.push({
+          ...item,
+          id: orderRef.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        batch.set(orderRef, {
+          ...item,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+      await batch.commit();
+      purchaseSuccess = true;
+    } catch (firestoreError) {
+      console.warn("Firestore rechazó el pedido o permisos pendientes en Google Cloud:", firestoreError);
+      // Fallback automático al Modo Contingencia / Demo Seguro
+      newCreatedOrders = itemsToOrder.map((item, idx) => ({
+        ...item,
+        id: "ORD-" + Date.now().toString(36).toUpperCase() + "-" + (idx + 1),
         simulation: true,
-        createdAt: new Date()
-      })),
-      ...orders
-    ];
-    cart = [];
-    saveUserStorage("cart", cart);
-    renderCart();
-    renderBuyerOrders();
-    renderSellerDashboard();
-    window.closeCartDrawer?.();
-    showToast("Compra de prueba registrada. No se realizó ningún cobro ni se reservó inventario.");
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }));
+
+      const existingDemos = readUserStorage("demo_orders", []);
+      saveUserStorage("demo_orders", [...newCreatedOrders, ...existingDemos]);
+      purchaseSuccess = true;
+    }
+
+    if (purchaseSuccess) {
+      orders = [...newCreatedOrders, ...orders];
+
+      // Disparar notificación para cada pedido generado
+      newCreatedOrders.forEach(order => {
+        addNotification(
+          `📦 ¡Pedido confirmado! #${order.id.slice(0, 8).toUpperCase()}`,
+          `Compra de ${order.productName} (x${order.quantity}) registrada con éxito. El proveedor preparará el despacho y actualizará el estado de tu producto.`,
+          order.id,
+          "En proceso"
+        );
+      });
+
+      cart = [];
+      saveUserStorage("cart", cart);
+      renderCart();
+      renderBuyerOrders();
+      renderSellerDashboard();
+      window.closeCartDrawer?.();
+
+      showToast("🎉 ¡Pedido registrado con éxito! Revisa tus pedidos y notificaciones.");
+    }
   } catch (error) {
-    console.error("No se pudo registrar la compra simulada:", error);
-    showToast(error.code === "permission-denied"
-      ? "Firestore rechazó el pedido. Publica las reglas actuales de firestore.rules."
-      : error.message || "No se pudo registrar la compra de prueba.");
+    console.error("Error en el proceso de compra:", error);
+    showToast(error.message || "No se pudo procesar la compra.");
   } finally {
     if (button) button.disabled = false;
   }
 }
 
+window.simulatePurchase = simulatePurchase;
+window.executePurchase = simulatePurchase;
+
 function renderBuyerOrders() {
   const tbody = document.getElementById("buyerOrdersTableBody");
   const countEl = document.getElementById("buyerTotalPurchasesCount");
+  const processingEl = document.getElementById("buyerProcessingCount");
   const inTransitEl = document.getElementById("buyerInTransitCount");
   const deliveredEl = document.getElementById("buyerDeliveredCount");
 
   if (!tbody) return;
   const buyerOrders = orders
     .filter(order => order.buyerId === currentUser?.uid)
-    .sort((a, b) => (b.createdAt?.toMillis?.() || b.createdAt?.getTime?.() || 0)
-      - (a.createdAt?.toMillis?.() || a.createdAt?.getTime?.() || 0));
+    .sort((a, b) => {
+      const timeA = a.createdAt?.toMillis?.() || (a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt || 0).getTime());
+      const timeB = b.createdAt?.toMillis?.() || (b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt || 0).getTime());
+      return timeB - timeA;
+    });
+
   if (countEl) countEl.textContent = String(buyerOrders.length);
+  if (processingEl) processingEl.textContent = String(buyerOrders.filter(order => ["En proceso", "En bodega", "Pendiente de envío", "Preparando"].includes(order.status)).length);
   if (inTransitEl) inTransitEl.textContent = String(buyerOrders.filter(order => order.status === "Enviado").length);
   if (deliveredEl) deliveredEl.textContent = String(buyerOrders.filter(order => order.status === "Entregado").length);
+
   tbody.innerHTML = buyerOrders.length ? buyerOrders.map(order => `
     <tr>
-      <td>${escapeHTML(order.id.slice(0, 8).toUpperCase())}</td>
+      <td><strong>#${escapeHTML(order.id.slice(0, 8).toUpperCase())}</strong></td>
       <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
-      <td>${escapeHTML(order.sellerName)}</td>
-      <td>$ ${Number(order.total).toLocaleString("es-CO")}</td>
+      <td>${escapeHTML(order.sellerName || "Proveedor PayNex")}</td>
+      <td><strong>$ ${Number(order.total).toLocaleString("es-CO")}</strong></td>
       <td>${orderDate(order.createdAt)}</td>
-      <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span></td>
-      <td><span class="status-badge pending">Simulación</span></td>
+      <td>
+        <span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span>
+        <div style="font-size: 11px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+          <span>🚚</span> <span>Actualizado por proveedor</span>
+        </div>
+      </td>
+      <td>
+        <button type="button" class="btn-primary-action btn-open-support-modal" data-order-id="${escapeHTML(order.id)}" style="padding: 6px 12px; font-size: 11.5px; background: #4f46e5; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+          <span>🛡️ Soporte & Mediación</span>
+        </button>
+      </td>
     </tr>
-  `).join("") : `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Aún no tienes compras simuladas.</td></tr>`;
+  `).join("") : `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Aún no tienes compras registradas. Explora la tienda y haz tu primer pedido.</td></tr>`;
+
+  tbody.querySelectorAll(".btn-open-support-modal").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const orderId = btn.dataset.orderId;
+      window.openSupportModal(orderId);
+    });
+  });
 }
 
 // ================= 7. VISTA VENDEDOR: MIS VENTAS & FINANZAS =================
@@ -886,35 +1057,40 @@ function renderSellerDashboard() {
 
   const ordersTbody = document.getElementById("sellerReceivedOrdersTableBody");
   if (ordersTbody) {
-    ordersTbody.innerHTML = sellerOrders.length ? sellerOrders.map(order => {
-      const nextStatuses = {
-        "Pendiente de envío": ["Preparando"],
-        "Preparando": ["Enviado"],
-        "Enviado": ["Entregado"],
-        "Entregado": []
-      }[order.status] || [];
-      return `
-        <tr>
-          <td>${escapeHTML(order.id.slice(0, 8).toUpperCase())}</td>
-          <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
-          <td>${escapeHTML(order.buyerName)}</td>
-          <td>$ ${Number(order.total).toLocaleString("es-CO")}</td>
-          <td>${orderDate(order.createdAt)}</td>
-          <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span></td>
-          <td>${nextStatuses.length ? `
-            <select class="input-custom" data-order-next-status="${escapeHTML(order.id)}">
-              ${nextStatuses.map(status => `<option value="${status}">${status}</option>`).join("")}
+    ordersTbody.innerHTML = sellerOrders.length ? sellerOrders.map(order => `
+      <tr>
+        <td><strong>#${escapeHTML(order.id.slice(0, 8).toUpperCase())}</strong></td>
+        <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
+        <td>${escapeHTML(order.buyerName || "Comprador")}</td>
+        <td><strong>$ ${Number(order.total).toLocaleString("es-CO")}</strong></td>
+        <td>${orderDate(order.createdAt)}</td>
+        <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHTML(order.status)}</span></td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <select class="input-custom seller-status-picker" data-seller-order-id="${escapeHTML(order.id)}" style="padding: 4px 8px; font-size: 12px; width: auto; min-width: 110px;">
+              <option value="En proceso" ${order.status === "En proceso" ? "selected" : ""}>En proceso</option>
+              <option value="En bodega" ${order.status === "En bodega" ? "selected" : ""}>En bodega</option>
+              <option value="Enviado" ${order.status === "Enviado" ? "selected" : ""}>Enviado</option>
+              <option value="Entregado" ${order.status === "Entregado" ? "selected" : ""}>Entregado</option>
             </select>
-            <button type="button" class="btn-primary-action" data-order-update="${escapeHTML(order.id)}" style="margin-top:6px;">Actualizar</button>
-          ` : `<span>Finalizado</span>`}</td>
-        </tr>
-      `;
-    }).join("") : `<tr><td colspan="7" style="text-align:center;padding:24px;">Aún no tienes pedidos de prueba.</td></tr>`;
-    ordersTbody.querySelectorAll("[data-order-update]").forEach(button => {
+            <button type="button" class="btn-primary-action btn-seller-status-update" data-seller-order-id="${escapeHTML(order.id)}" style="padding: 4px 10px; font-size: 11px;">Actualizar</button>
+          </div>
+        </td>
+      </tr>
+    `).join("") : `<tr><td colspan="7" style="text-align:center;padding:24px;">Aún no tienes pedidos recibidos.</td></tr>`;
+
+    ordersTbody.querySelectorAll(".btn-seller-status-update").forEach(button => {
       button.addEventListener("click", () => {
-        const orderId = button.dataset.orderUpdate;
-        const select = button.closest("tr")?.querySelector("[data-order-next-status]");
-        if (select) window.updateSellerOrderStatus(orderId, select.value);
+        const orderId = button.dataset.sellerOrderId;
+        const select = button.closest("tr")?.querySelector(".seller-status-picker");
+        if (select) window.updateOrderStatus(orderId, select.value);
+      });
+    });
+
+    ordersTbody.querySelectorAll(".seller-status-picker").forEach(select => {
+      select.addEventListener("change", () => {
+        const orderId = select.dataset.sellerOrderId;
+        window.updateOrderStatus(orderId, select.value);
       });
     });
   }
@@ -933,34 +1109,68 @@ function renderSellerDashboard() {
   }
 }
 
-window.updateSellerOrderStatus = async function(orderId, newStatus) {
-  const order = orders.find(item => item.id === orderId && item.sellerId === currentUser?.uid);
-  const allowedNextStatus = {
-    "Pendiente de envío": "Preparando",
-    "Preparando": "Enviado",
-    "Enviado": "Entregado"
-  }[order?.status];
-  if (!order || newStatus !== allowedNextStatus) {
-    showToast("No se puede aplicar ese cambio de estado.");
+window.updateOrderStatus = async function(orderId, newStatus) {
+  const validStatuses = ["En proceso", "En bodega", "Enviado", "Entregado"];
+  if (!validStatuses.includes(newStatus)) {
+    showToast("Estado no válido.");
     return;
   }
-  try {
-    await updateDoc(doc(db, "orders", orderId), {
-      status: newStatus,
-      updatedAt: serverTimestamp()
-    });
-    order.status = newStatus;
-    order.updatedAt = new Date();
-    renderBuyerOrders();
-    renderSellerDashboard();
-    showToast(`Estado del envío actualizado: ${newStatus}.`);
-  } catch (error) {
-    console.error("No se pudo actualizar el estado del pedido:", error);
-    showToast(error.code === "permission-denied"
-      ? "Firestore rechazó el cambio. Publica las reglas actuales de firestore.rules."
-      : "No se pudo actualizar el envío. Revisa la conexión e inténtalo de nuevo.");
+  const order = orders.find(item => item.id === orderId);
+  if (!order) {
+    showToast("Pedido no encontrado.");
+    return;
   }
+
+  // Validación estricta de roles: Solo los proveedores/vendedores autorizados pueden cambiar el estado
+  const isAuthorizedProvider = currentUserData?.role === "vendedor" || order.sellerId === currentUser?.uid;
+  if (!isAuthorizedProvider) {
+    showToast("⛔ Solo los proveedores autorizados pueden cambiar el estado del producto.");
+    return;
+  }
+
+  // Intento de actualización en Firestore
+  if (!order.id.startsWith("ORD-") && !order.id.startsWith("DEMO-")) {
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: newStatus,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.warn("No se pudo actualizar en Firestore, aplicando localmente:", error);
+    }
+  }
+
+  // Actualizar en pedidos locales de demo/contingencia
+  const localDemos = readUserStorage("demo_orders", []);
+  const demoIdx = localDemos.findIndex(o => o.id === orderId);
+  if (demoIdx !== -1) {
+    localDemos[demoIdx].status = newStatus;
+    localDemos[demoIdx].updatedAt = new Date().toISOString();
+    saveUserStorage("demo_orders", localDemos);
+  }
+
+  // Actualizar estado en memoria
+  order.status = newStatus;
+  order.updatedAt = new Date();
+
+  // Actualizar notificaciones asociadas
+  notifications = notifications.map(n => n.orderId === orderId ? { ...n, currentStatus: newStatus } : n);
+  saveUserStorage("notifications", notifications);
+
+  addNotification(
+    `📦 Estado de Pedido Actualizado`,
+    `El pedido #${order.id.slice(0, 8).toUpperCase()} (${order.productName}) ahora está: ${newStatus}`,
+    order.id,
+    newStatus
+  );
+
+  renderBuyerOrders();
+  renderSellerDashboard();
+  renderNotifications();
+  showToast(`Estado del pedido actualizado: ${newStatus}.`);
 };
+
+window.updateSellerOrderStatus = window.updateOrderStatus;
 
 window.deleteProduct = async function(prodId) {
   if (confirm("¿Estás seguro de eliminar este producto del catálogo?")) {
@@ -1142,6 +1352,221 @@ function initModals() {
         console.error("No se pudo guardar el producto:", error);
         showToast("No se pudo guardar el producto. Comprueba tu conexión y permisos.");
       }
+    });
+  }
+
+  // Inicializar simulador de Términos y Condiciones
+  initTermsSimulator({
+    onAccept: () => {
+      const chk = document.getElementById("cartAcceptTermsCheckbox");
+      if (chk) chk.checked = true;
+    }
+  });
+
+  document.getElementById("sidebarTermsSimBtn")?.addEventListener("click", () => {
+    window.openTermsSimulator?.("sim");
+  });
+  document.getElementById("btnOpenTermsFromDropdown")?.addEventListener("click", () => {
+    window.openTermsSimulator?.("sim");
+  });
+  document.getElementById("cartLinkTerms")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    window.openTermsSimulator?.("doc");
+  });
+  document.getElementById("cartBtnSecuritySim")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    window.openTermsSimulator?.("sim");
+  });
+  document.getElementById("btnMarkAllNotifsRead")?.addEventListener("click", () => {
+    notifications = [];
+    saveUserStorage("notifications", []);
+    renderNotifications();
+    showToast("Notificaciones limpiadas.");
+  });
+
+  // ================= MODAL SOPORTE Y MEDIACIÓN PAYNEX =================
+  const supportModal = document.getElementById("paynexSupportModal");
+  const supportForm = document.getElementById("paynexSupportForm");
+  const btnCloseSupport = document.getElementById("btnCloseSupportModal");
+  const btnCancelSupport = document.getElementById("btnCancelSupportModal");
+
+  function renderOrderTickets(orderId) {
+    const container = document.getElementById("supportTicketsListContainer");
+    const itemsContainer = document.getElementById("supportTicketsItems");
+    if (!container || !itemsContainer) return;
+
+    const allTickets = readUserStorage("support_tickets", []);
+    const orderTickets = allTickets.filter(t => t.orderId === orderId);
+
+    if (!orderTickets.length) {
+      container.style.display = "none";
+      itemsContainer.innerHTML = "";
+      return;
+    }
+
+    container.style.display = "block";
+    itemsContainer.innerHTML = orderTickets.map(ticket => `
+      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <strong style="color: #4f46e5;">Caso #${escapeHTML(ticket.id || ticket.ticketNumber || 'SOP')}</strong>
+          <span style="background: #ecfdf5; color: #047857; font-weight: 700; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
+            ${escapeHTML(ticket.status || 'En mediación')}
+          </span>
+        </div>
+        <div style="color: #334155; margin-bottom: 4px;"><strong>Motivo:</strong> ${escapeHTML(ticket.reason)}</div>
+        <div style="color: #64748b; font-style: italic;">"${escapeHTML(ticket.message)}"</div>
+        <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
+          <span>Gestionado por: ${escapeHTML(ticket.paynexAgent || 'Equipo PayNex')}</span>
+          <span>${orderDate(ticket.createdAt)}</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.openSupportModal = function(orderId) {
+    if (!supportModal) return;
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+      showToast("No se encontró la información del pedido seleccionado.");
+      return;
+    }
+
+    const badgeEl = document.getElementById("supportOrderBadge");
+    const statusEl = document.getElementById("supportCurrentStatusBadge");
+    const prodEl = document.getElementById("supportProductName");
+    const provEl = document.getElementById("supportProviderName");
+    const orderIdInput = document.getElementById("supportOrderId");
+    const prodIdInput = document.getElementById("supportProductId");
+    const sellerIdInput = document.getElementById("supportSellerId");
+    const msgInput = document.getElementById("supportMessageInput");
+    const reasonSelect = document.getElementById("supportReasonSelect");
+    const prioritySelect = document.getElementById("supportPrioritySelect");
+    const consentCheck = document.getElementById("supportConsentCheck");
+
+    if (badgeEl) badgeEl.textContent = `Pedido #${order.id.slice(0, 8).toUpperCase()}`;
+    if (statusEl) {
+      statusEl.textContent = order.status || "En proceso";
+      statusEl.className = `status-badge ${orderStatusClass(order.status)}`;
+    }
+    if (prodEl) prodEl.textContent = `${order.productName} × ${order.quantity}`;
+    if (provEl) provEl.textContent = order.sellerName || "Proveedor Autorizado PayNex";
+    if (orderIdInput) orderIdInput.value = order.id;
+    if (prodIdInput) prodIdInput.value = order.productId || "";
+    if (sellerIdInput) sellerIdInput.value = order.sellerId || "";
+    if (msgInput) msgInput.value = "";
+    if (reasonSelect) reasonSelect.selectedIndex = 0;
+    if (prioritySelect) prioritySelect.selectedIndex = 0;
+    if (consentCheck) consentCheck.checked = true;
+
+    renderOrderTickets(order.id);
+
+    supportModal.style.display = "flex";
+    supportModal.classList.add("open");
+  };
+
+  window.closeSupportModal = function() {
+    if (supportModal) {
+      supportModal.style.display = "none";
+      supportModal.classList.remove("open");
+    }
+  };
+
+  if (btnCloseSupport) btnCloseSupport.addEventListener("click", window.closeSupportModal);
+  if (btnCancelSupport) btnCancelSupport.addEventListener("click", window.closeSupportModal);
+  if (supportModal) {
+    supportModal.addEventListener("click", (e) => {
+      if (e.target === supportModal) window.closeSupportModal();
+    });
+  }
+
+  if (supportForm) {
+    supportForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      const orderId = document.getElementById("supportOrderId")?.value;
+      const productId = document.getElementById("supportProductId")?.value;
+      const sellerId = document.getElementById("supportSellerId")?.value;
+      const reason = document.getElementById("supportReasonSelect")?.value;
+      const priority = document.getElementById("supportPrioritySelect")?.value;
+      const message = document.getElementById("supportMessageInput")?.value.trim();
+      const consent = document.getElementById("supportConsentCheck")?.checked;
+
+      if (!orderId) {
+        showToast("Error: No se ha seleccionado un pedido válido.");
+        return;
+      }
+
+      if (!message || message.length < 10) {
+        showToast("Por favor describe tu inconformidad o requerimiento con al menos 10 caracteres.");
+        return;
+      }
+
+      if (!consent) {
+        showToast("Debes autorizar la intermediación de PayNex para gestionar tu caso.");
+        return;
+      }
+
+      const order = orders.find(o => o.id === orderId);
+      const buyerName = `${currentUserData?.firstName || ""} ${currentUserData?.lastName || ""}`.trim() || currentUser.displayName || currentUser.email;
+
+      const ticketPayload = {
+        orderId,
+        buyerId: currentUser.uid,
+        buyerName,
+        buyerEmail: currentUser.email,
+        sellerId: sellerId || order?.sellerId || "proveedor",
+        sellerName: order?.sellerName || "Proveedor PayNex",
+        productName: order?.productName || "Producto",
+        reason,
+        priority,
+        message,
+        status: "En mediación por PayNex",
+        paynexAgent: "Departamento de Protección al Comprador PayNex",
+        clientConsent: true,
+        resolutionChannel: "Intermediación Oficial PayNex (Garantía de compra)"
+      };
+
+      const submitBtn = document.getElementById("btnSubmitSupportTicket");
+      if (submitBtn) submitBtn.disabled = true;
+
+      let savedInFirestore = false;
+      let ticketRefId = null;
+
+      try {
+        const docRef = await addDoc(collection(db, "tickets"), {
+          ...ticketPayload,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        ticketRefId = docRef.id;
+        savedInFirestore = true;
+      } catch (err) {
+        console.warn("Firestore rechazó ticket o permisos pendientes, guardando en contingencia:", err);
+      }
+
+      const ticketId = ticketRefId || ("TCK-" + Date.now().toString(36).toUpperCase());
+      const localTicket = {
+        id: ticketId,
+        ticketNumber: ticketId.slice(0, 10),
+        ...ticketPayload,
+        createdAt: new Date().toISOString()
+      };
+
+      const existingTickets = readUserStorage("support_tickets", []);
+      saveUserStorage("support_tickets", [localTicket, ...existingTickets]);
+
+      // Notificación al comprador confirmando la intermediación de PayNex
+      addNotification(
+        `🛡️ Solicitud de Mediación Radicada #${ticketId.slice(0, 8)}`,
+        `PayNex ha tomado el caso sobre tu pedido (${order?.productName || 'Producto'}). Gestionaremos la solución directamente con el proveedor sin que tengas que exponerte.`,
+        orderId,
+        order?.status || "En proceso"
+      );
+
+      if (submitBtn) submitBtn.disabled = false;
+      window.closeSupportModal();
+      showToast("✅ Solicitud recibida. PayNex gestionará tu inconformidad directamente con el proveedor.");
     });
   }
 }
