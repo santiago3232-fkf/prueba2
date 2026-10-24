@@ -47,7 +47,7 @@ export function getTermsModalHTML() {
         
         <!-- PESTAÑA 1: SIMULADOR DE SEGURIDAD -->
         <div id="tabContentSimulator">
-          <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
             <div>
               <strong style="color: #3730a3; font-size: 14px;">Diagnóstico de Seguridad Activo</strong>
               <p style="font-size: 12.5px; color: #4338ca; margin: 2px 0 0 0;">Verifica cómo la plataforma previene vulnerabilidades de aceptación, alteración y fraude.</p>
@@ -57,7 +57,7 @@ export function getTermsModalHTML() {
             </span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 20px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
             
             <!-- Test 1: Bypass Test -->
             <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; background: #f8fafc;">

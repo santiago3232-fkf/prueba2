@@ -398,16 +398,86 @@ body {
 
 /* Responsividad */
 @media (max-width: 768px) {
+  body {
+    padding: 14px 10px;
+    align-items: flex-start;
+    min-height: 100vh;
+  }
+  .auth-wrapper {
+    max-width: 480px;
+    width: 100%;
+    margin: auto;
+  }
   .paynex-card {
     flex-direction: column;
-  }
-  .paynex-banner, .paynex-form-container {
-    width: 100%;
+    min-height: auto;
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   }
   .paynex-banner {
-    padding: 25px;
+    width: 100%;
+    padding: 22px 20px 14px 20px;
+  }
+  .banner-illustration {
+    display: none; /* En móvil ocultamos la ilustración gigante para que el formulario sea accesible de inmediato */
+  }
+  .logo-container {
+    margin-bottom: 10px;
+  }
+  .logo-text {
+    font-size: 22px;
+  }
+  .banner-content h2 {
+    font-size: 19px;
+    margin-bottom: 4px;
+    line-height: 1.25;
+  }
+  .banner-content p {
+    font-size: 12.5px;
+    line-height: 1.45;
   }
   .paynex-form-container {
-    padding: 30px 25px;
+    width: 100%;
+    padding: 22px 20px 28px 20px;
+  }
+  .form-header {
+    margin-bottom: 18px;
+  }
+  .form-header h1 {
+    font-size: 23px;
+  }
+  .input-field {
+    font-size: 16px; /* Evita el zoom automático no deseado en navegadores iOS Safari */
+    padding: 12px 14px 12px 42px;
+  }
+  .btn-submit {
+    padding: 13px;
+    font-size: 15px;
+  }
+  .btn-close-auth {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 8px;
+  }
+  .paynex-card {
+    border-radius: 16px;
+  }
+  .paynex-banner {
+    padding: 18px 16px 12px 16px;
+  }
+  .paynex-form-container {
+    padding: 18px 16px 24px 16px;
+  }
+  .form-header h1 {
+    font-size: 21px;
   }
 }

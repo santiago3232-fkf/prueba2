@@ -55,8 +55,94 @@
           </a>
         </div>
       </div>
+
+      <!-- Botón Hamburguesa para Móvil -->
+      <button type="button" class="btn-mobile-nav-toggle" id="btnMobileNavToggle" aria-label="Abrir menú de navegación">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
     </div>
   </header>
+
+  <!-- ================= MENÚ MÓVIL (OFF-CANVAS DRAWER) ================= -->
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+  <aside class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Navegación móvil">
+    <div class="mobile-nav-header">
+      <div class="brand-logo">
+        <img src="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png" alt="Logo PayNex" class="brand-icon">
+        <span class="brand-name">
+          <span class="pay">Pay</span><span class="nex">Nex</span>
+        </span>
+      </div>
+      <button type="button" class="btn-close-mobile-nav" id="btnCloseMobileNav" aria-label="Cerrar menú">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Barra de búsqueda rápida móvil -->
+    <form class="mobile-search-form" id="mobileSearchForm">
+      <input type="search" placeholder="Buscar productos, marcas..." id="mobileSearchInput" maxlength="120">
+      <button type="submit" aria-label="Buscar">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+      </button>
+    </form>
+
+    <!-- Enlaces de navegación móvil -->
+    <nav class="mobile-nav-body">
+      <ul class="mobile-nav-list">
+        <li>
+          <a href="index.html" class="mobile-nav-link active">
+            <span class="mobile-nav-icon">🏠</span>
+            <span>Inicio</span>
+          </a>
+        </li>
+        <li>
+          <a href="dashboard.html" class="mobile-nav-link">
+            <span class="mobile-nav-icon">🛍️</span>
+            <span>Tienda y Catálogo</span>
+          </a>
+        </li>
+        <li>
+          <a href="#como-funciona" class="mobile-nav-link mobile-anchor">
+            <span class="mobile-nav-icon">⚡</span>
+            <span>Emprendedores</span>
+          </a>
+        </li>
+        <li>
+          <a href="#nosotros" class="mobile-nav-link mobile-anchor">
+            <span class="mobile-nav-icon">🚀</span>
+            <span>Nosotros</span>
+          </a>
+        </li>
+        <li>
+          <a href="#contacto" class="mobile-nav-link mobile-anchor">
+            <span class="mobile-nav-icon">📞</span>
+            <span>Contacto</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Acciones de cuenta móvil -->
+    <div class="mobile-nav-footer">
+      <div class="mobile-auth-actions" id="mobileAuthActions">
+        <a href="login.html" class="btn-mobile-login" id="btnMobileLogin">Iniciar sesión</a>
+        <a href="login.html#register" class="btn-mobile-register" id="btnMobileRegister">Crear cuenta</a>
+        
+        <div class="mobile-logged-chip" id="mobileLoggedInChip" style="display: none;">
+          <img id="mobileUserAvatar" src="img/register_panel.png" alt="Usuario">
+          <a href="dashboard.html" class="btn-mobile-dashboard" id="mobileDashboardLink">
+            <span id="mobileUserName">Mi Panel</span> <span>→</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- ================= SECCIÓN HERO ================= -->
   <main>
@@ -239,17 +325,23 @@
     </section>
 
     <!-- ================= SECCIÓN DE CONTACTO DIRECTO ================= -->
-    <section class="contact-section" id="contacto" style="max-width: 1280px; margin: 0 auto 60px auto; padding: 28px 32px; background: linear-gradient(135deg, #fdf4ff 0%, #f5f3ff 100%); border-radius: 24px; border: 1.5px solid #e9d5ff; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
-      <div>
-        <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px;">Contacto</span>
-        <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 4px;">¿Tienes dudas o quieres emprender con PayNex?</h3>
-        <p style="font-size: 14px; color: #64748b; margin-top: 2px;">Contacto para consultas sobre el proyecto, el catálogo y las cuentas.</p>
+    <section class="contact-section" id="contacto">
+      <div class="contact-info">
+        <span class="contact-badge">Contacto</span>
+        <h3 class="contact-title">¿Tienes dudas o quieres emprender con PayNex?</h3>
+        <p class="contact-subtitle">Contacto para consultas sobre el proyecto, el catálogo y las cuentas.</p>
       </div>
-      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <a href="https://wa.me/573224045855?text=Hola%20Santiago,%20tengo%20una%20consulta%20sobre%20PayNex" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 8px; background: #22c55e; color: #ffffff; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.28);">
+      <div class="contact-cta-group">
+        <a href="https://wa.me/573224045855?text=Hola%20Santiago,%20tengo%20una%20consulta%20sobre%20PayNex" target="_blank" rel="noopener noreferrer" class="btn-contact-whatsapp">
+          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.974.53 2.062.812 3.197.812 3.181 0 5.767-2.586 5.767-5.767 0-3.18-2.586-5.767-5.768-5.767zm0 10.428c-.974 0-1.928-.261-2.76-.755l-.198-.118-1.58.414.422-1.54-.129-.205c-.544-.865-.83-1.874-.83-2.91 0-2.88 2.343-5.223 5.224-5.223 2.881 0 5.224 2.343 5.224 5.223 0 2.88-2.343 5.224-5.224 5.224zm2.864-3.906c-.157-.078-.928-.458-1.072-.511-.144-.052-.249-.078-.354.078-.105.157-.406.511-.498.616-.092.105-.183.118-.34.039-.157-.079-.664-.245-1.264-.78-.468-.417-.783-.933-.875-1.09-.092-.157-.01-.242.069-.32.071-.071.157-.183.236-.275.079-.092.105-.157.157-.262.052-.105.026-.196-.013-.275-.039-.079-.354-.852-.485-1.167-.128-.306-.258-.265-.354-.27l-.302-.005c-.105 0-.275.039-.419.196-.144.157-.55.537-.55 1.31 0 .773.563 1.52 1.054 2.148 1.488 1.905 2.502 2.145 3.364 2.145.862 0 1.545-.24 1.772-.89.227-.65.227-1.206.159-1.323-.068-.118-.249-.183-.406-.262z"/>
+          </svg>
           <span>WhatsApp / Tel: 322 404 5855</span>
         </a>
-        <a href="mailto:san.18gutierrez@gmail.com" style="display: inline-flex; align-items: center; gap: 8px; background: #ffffff; color: #7c3aed; border: 1.5px solid #7c3aed; padding: 10px 18px; border-radius: 14px; font-size: 14px; font-weight: 700; text-decoration: none;">
+        <a href="mailto:san.18gutierrez@gmail.com" class="btn-contact-email">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
           <span>san.18gutierrez@gmail.com</span>
         </a>
       </div>

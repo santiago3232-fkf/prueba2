@@ -742,13 +742,18 @@
   .pn-chat-window {
     width: calc(100vw - 32px);
     height: calc(100vh - 100px);
+    max-height: calc(100dvh - 90px);
     bottom: 74px;
     left: 0;
     border-radius: 18px;
   }
 
   .pn-chat-launcher {
-    width: 54px;
-    height: 54px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .pn-chat-input {
+    font-size: 16px; /* Evita auto-zoom en iOS Safari */
   }
 }

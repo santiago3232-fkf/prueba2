@@ -248,6 +248,28 @@ function initNavigation() {
   const navItems = document.querySelectorAll(".nav-item[data-view]");
   const viewContainers = document.querySelectorAll(".view-container");
 
+  // Control de Sidebar Móvil (Drawer)
+  const sidebar = document.getElementById("appSidebar");
+  const sidebarToggle = document.getElementById("btnSidebarToggle");
+  const sidebarClose = document.getElementById("btnCloseSidebar");
+  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+
+  function openMobileSidebar() {
+    sidebar?.classList.add("open");
+    sidebarBackdrop?.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeMobileSidebar() {
+    sidebar?.classList.remove("open");
+    sidebarBackdrop?.classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  sidebarToggle?.addEventListener("click", openMobileSidebar);
+  sidebarClose?.addEventListener("click", closeMobileSidebar);
+  sidebarBackdrop?.addEventListener("click", closeMobileSidebar);
+
   window.switchView = function(viewId) {
     viewContainers.forEach(container => {
       container.classList.remove("active");
@@ -265,6 +287,8 @@ function initNavigation() {
         item.classList.remove("active");
       }
     });
+
+    closeMobileSidebar();
 
     // Cerrar dropdown de usuario si está abierto
     const userMenu = document.getElementById("userDropdownPanel");
