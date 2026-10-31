@@ -59,18 +59,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Comprobar estado de autenticación en la Landing Page
   checkAuthState((user, userData) => {
     if (user) {
-      if (user.email) {
-        try {
-          localStorage.removeItem(`paynex_avatar_${user.email}`);
-        } catch (error) {
-          console.warn("No se pudo limpiar el avatar local heredado:", error);
-        }
-      }
       // Usuario autenticado: mostrar chip de acceso directo al Dashboard
       const firstName = userData?.firstName || (user.displayName ? user.displayName.split(" ")[0] : null) || user.email?.split("@")[0] || "Mi Panel";
-      const candidatePhoto = typeof userData?.photoURL === "string" ? userData.photoURL
-        : typeof user.photoURL === "string" ? user.photoURL : "";
-      const photo = candidatePhoto.startsWith("https://") || /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(candidatePhoto)
+      const localAvatar = localStorage.getItem(`altevrashop_avatar_${user.uid}`)
+        || localStorage.getItem(`altevrashop_avatar_${user.email}`)
+        || localStorage.getItem(`paynex_avatar_${user.email}`);
+      const candidatePhoto = (typeof userData?.photoURL === "string" && userData.photoURL)
+        || localAvatar
+        || (typeof user.photoURL === "string" ? user.photoURL : "");
+      const photo = candidatePhoto.startsWith("https://") || candidatePhoto.startsWith("data:image/") || /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(candidatePhoto)
         ? candidatePhoto
         : "img/register_panel.png";
 

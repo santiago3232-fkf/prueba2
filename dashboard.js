@@ -1,6 +1,8 @@
 import { checkAuthState, logoutUser } from "./auth.js";
 import { initTermsSimulator } from "./terms-simulator.js";
 import { 
+  auth,
+  updateProfile,
   db, 
   doc, 
   setDoc,
@@ -31,7 +33,9 @@ const productCategories = new Set([
 ]);
 const legacyStorageKeys = [
   "paynex_products", "paynex_cart", "paynex_favorites", "paynex_buyer_orders",
-  "paynex_seller_orders", "paynex_transactions", "paynex_balance"
+  "paynex_seller_orders", "paynex_transactions", "paynex_balance",
+  "altevrashop_products", "altevrashop_cart", "altevrashop_favorites", "altevrashop_buyer_orders",
+  "altevrashop_seller_orders", "altevrashop_transactions", "altevrashop_balance"
 ];
 
 function clearLegacyStorage() {
@@ -45,6 +49,10 @@ function clearLegacyStorage() {
 }
 
 function storageKey(name) {
+  return currentUser ? `altevrashop_${name}_${currentUser.uid}` : null;
+}
+
+function legacyStorageKey(name) {
   return currentUser ? `paynex_${name}_${currentUser.uid}` : null;
 }
 
@@ -52,7 +60,11 @@ function readUserStorage(name, fallback) {
   const key = storageKey(name);
   if (!key) return fallback;
   try {
-    const value = localStorage.getItem(key);
+    let value = localStorage.getItem(key);
+    if (value === null) {
+      const legKey = legacyStorageKey(name);
+      if (legKey) value = localStorage.getItem(legKey);
+    }
     if (value === null) return fallback;
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : fallback;
@@ -71,6 +83,15 @@ function saveUserStorage(name, value) {
     console.error(`No se pudo guardar ${name} en este dispositivo:`, error);
     showToast("No se pudieron guardar los cambios en este dispositivo.");
   }
+}
+
+function resolvePhoto(candidate) {
+  if (!candidate || typeof candidate !== "string") return "img/register_panel.png";
+  const trimmed = candidate.trim();
+  if (trimmed.startsWith("https://") || trimmed.startsWith("data:image/") || /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(trimmed)) {
+    return trimmed;
+  }
+  return "img/register_panel.png";
 }
 
 function escapeHTML(value) {
@@ -180,11 +201,13 @@ function initAuth() {
     const firstName = userData.firstName || user.displayName?.split(" ")[0] || user.email?.split("@")[0] || "Usuario";
     const lastName = userData.lastName || user.displayName?.split(" ").slice(1).join(" ") || "";
     const fullName = `${firstName} ${lastName}`.trim();
-    const candidatePhoto = typeof userData.photoURL === "string" ? userData.photoURL
-      : typeof user.photoURL === "string" ? user.photoURL : "";
-    const photo = candidatePhoto.startsWith("https://") || /^img\/[A-Za-z0-9_-]+[.](png|jpg|jpeg|webp|gif|svg)$/.test(candidatePhoto)
-      ? candidatePhoto
-      : "img/register_panel.png";
+    const localAvatar = localStorage.getItem(`altevrashop_avatar_${user.uid}`) ||
+                        localStorage.getItem(`altevrashop_avatar_${user.email}`) ||
+                        localStorage.getItem(`paynex_avatar_${user.email}`);
+    const candidatePhoto = (typeof userData?.photoURL === "string" && userData.photoURL)
+      || localAvatar
+      || (typeof user.photoURL === "string" ? user.photoURL : "");
+    const photo = resolvePhoto(candidatePhoto);
     const headerUserName = document.getElementById("headerUserName");
     const headerUserAvatar = document.getElementById("headerUserAvatar");
     const profileDisplayName = document.getElementById("profileDisplayName");
@@ -381,9 +404,9 @@ function initCarousel() {
   if (!image || !previous || !next || !dots.length) return;
 
   const slides = [
-    { src: "img/mockup2_banner_3d_2x.png", alt: "Productos PayNex" },
+    { src: "img/mockup2_banner_3d_2x.png", alt: "Productos Altevrashop" },
     { src: "img/banner_hero_3d.png", alt: "Tecnología y productos" },
-    { src: "img/hero1_phone_cards_clean_2x.png", alt: "Catálogo PayNex en un teléfono" },
+    { src: "img/hero1_phone_cards_clean_2x.png", alt: "Catálogo Altevrashop en un teléfono" },
     { src: "img/mockup1_hero_phone.png", alt: "Productos destacados" }
   ].slice(0, dots.length);
   let activeSlide = 0;
@@ -766,7 +789,7 @@ function renderNotifications() {
               <span class="status-badge ${orderStatusClass(notif.currentStatus || 'En proceso')}" style="font-size: 11px; padding: 2px 8px;">${escapeHTML(notif.currentStatus || 'En proceso')}</span>
             </div>
             <button type="button" class="btn-notif-support" data-notif-order-id="${escapeHTML(notif.orderId)}" style="border: 1px solid #c7d2fe; background: #eef2ff; color: #4338ca; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer;">
-              🛡️ Mediación PayNex
+              🛡️ Mediación Altevrashop
             </button>
           </div>
         `
@@ -889,8 +912,8 @@ async function simulatePurchase() {
       itemsToOrder.push({
         buyerId: currentUser.uid,
         buyerName: buyerName.slice(0, 120),
-        sellerId: product.sellerId || "paynex-store",
-        sellerName: product.sellerName || "Vendedor PayNex",
+        sellerId: product.sellerId || "altevrashop-store",
+        sellerName: product.sellerName || "Vendedor Altevrashop",
         productId: product.id,
         productName: product.name,
         image: product.image,
@@ -1000,7 +1023,7 @@ function renderBuyerOrders() {
     <tr>
       <td><strong>#${escapeHTML(order.id.slice(0, 8).toUpperCase())}</strong></td>
       <td>${escapeHTML(order.productName)} × ${Number(order.quantity)}</td>
-      <td>${escapeHTML(order.sellerName || "Proveedor PayNex")}</td>
+      <td>${escapeHTML(order.sellerName || "Proveedor Altevrashop")}</td>
       <td><strong>$ ${Number(order.total).toLocaleString("es-CO")}</strong></td>
       <td>${orderDate(order.createdAt)}</td>
       <td>
@@ -1408,9 +1431,9 @@ function initModals() {
     showToast("Notificaciones limpiadas.");
   });
 
-  // ================= MODAL SOPORTE Y MEDIACIÓN PAYNEX =================
-  const supportModal = document.getElementById("paynexSupportModal");
-  const supportForm = document.getElementById("paynexSupportForm");
+  // ================= MODAL SOPORTE Y MEDIACIÓN ALTEVRASHOP =================
+  const supportModal = document.getElementById("altevrashopSupportModal") || document.getElementById("paynexSupportModal");
+  const supportForm = document.getElementById("altevrashopSupportForm") || document.getElementById("paynexSupportForm");
   const btnCloseSupport = document.getElementById("btnCloseSupportModal");
   const btnCancelSupport = document.getElementById("btnCancelSupportModal");
 
@@ -1440,7 +1463,7 @@ function initModals() {
         <div style="color: #334155; margin-bottom: 4px;"><strong>Motivo:</strong> ${escapeHTML(ticket.reason)}</div>
         <div style="color: #64748b; font-style: italic;">"${escapeHTML(ticket.message)}"</div>
         <div style="font-size: 10.5px; color: #94a3b8; margin-top: 6px; display: flex; justify-content: space-between;">
-          <span>Gestionado por: ${escapeHTML(ticket.paynexAgent || 'Equipo PayNex')}</span>
+          <span>Gestionado por: ${escapeHTML(ticket.altevrashopAgent || ticket.paynexAgent || 'Equipo Altevrashop')}</span>
           <span>${orderDate(ticket.createdAt)}</span>
         </div>
       </div>
@@ -1473,7 +1496,7 @@ function initModals() {
       statusEl.className = `status-badge ${orderStatusClass(order.status)}`;
     }
     if (prodEl) prodEl.textContent = `${order.productName} × ${order.quantity}`;
-    if (provEl) provEl.textContent = order.sellerName || "Proveedor Autorizado PayNex";
+    if (provEl) provEl.textContent = order.sellerName || "Proveedor Autorizado Altevrashop";
     if (orderIdInput) orderIdInput.value = order.id;
     if (prodIdInput) prodIdInput.value = order.productId || "";
     if (sellerIdInput) sellerIdInput.value = order.sellerId || "";
@@ -1527,7 +1550,7 @@ function initModals() {
       }
 
       if (!consent) {
-        showToast("Debes autorizar la intermediación de PayNex para gestionar tu caso.");
+        showToast("Debes autorizar la intermediación de Altevrashop para gestionar tu caso.");
         return;
       }
 
@@ -1540,15 +1563,15 @@ function initModals() {
         buyerName,
         buyerEmail: currentUser.email,
         sellerId: sellerId || order?.sellerId || "proveedor",
-        sellerName: order?.sellerName || "Proveedor PayNex",
+        sellerName: order?.sellerName || "Proveedor Altevrashop",
         productName: order?.productName || "Producto",
         reason,
         priority,
         message,
-        status: "En mediación por PayNex",
-        paynexAgent: "Departamento de Protección al Comprador PayNex",
+        status: "En mediación por Altevrashop",
+        altevrashopAgent: "Departamento de Protección al Comprador Altevrashop",
         clientConsent: true,
-        resolutionChannel: "Intermediación Oficial PayNex (Garantía de compra)"
+        resolutionChannel: "Intermediación Oficial Altevrashop (Garantía de compra)"
       };
 
       const submitBtn = document.getElementById("btnSubmitSupportTicket");
@@ -1580,17 +1603,17 @@ function initModals() {
       const existingTickets = readUserStorage("support_tickets", []);
       saveUserStorage("support_tickets", [localTicket, ...existingTickets]);
 
-      // Notificación al comprador confirmando la intermediación de PayNex
+      // Notificación al comprador confirmando la intermediación de Altevrashop
       addNotification(
         `🛡️ Solicitud de Mediación Radicada #${ticketId.slice(0, 8)}`,
-        `PayNex ha tomado el caso sobre tu pedido (${order?.productName || 'Producto'}). Gestionaremos la solución directamente con el proveedor sin que tengas que exponerte.`,
+        `Altevrashop ha tomado el caso sobre tu pedido (${order?.productName || 'Producto'}). Gestionaremos la solución directamente con el proveedor sin que tengas que exponerte.`,
         orderId,
         order?.status || "En proceso"
       );
 
       if (submitBtn) submitBtn.disabled = false;
       window.closeSupportModal();
-      showToast("✅ Solicitud recibida. PayNex gestionará tu inconformidad directamente con el proveedor.");
+      showToast("✅ Solicitud recibida. Altevrashop gestionará tu inconformidad directamente con el proveedor.");
     });
   }
 }
@@ -1629,9 +1652,170 @@ function initCategories() {
 // ================= 11. PERFIL =================
 function initProfile() {
   const form = document.getElementById("userProfileForm");
-  const avatarInput = document.getElementById("avatarFileInput");
-  if (avatarInput) avatarInput.disabled = true;
+  const avatarFileInput = document.getElementById("profileAvatarFileInput");
+  const avatarWrapper = document.getElementById("profileAvatarWrapper");
+  const btnTriggerAvatarBadge = document.getElementById("btnTriggerAvatarBadge");
+  const btnUploadAvatar = document.getElementById("btnUploadAvatar");
+  const btnToggleAvatarUrl = document.getElementById("btnToggleAvatarUrl");
+  const btnCancelAvatarUrl = document.getElementById("btnCancelAvatarUrl");
+  const btnApplyAvatarUrl = document.getElementById("btnApplyAvatarUrl");
+  const btnResetAvatar = document.getElementById("btnResetAvatar");
+  const avatarUrlContainer = document.getElementById("avatarUrlContainer");
+  const avatarUrlField = document.getElementById("avatarUrlField");
 
+  // Helper para aplicar y persistir la nueva foto de perfil
+  async function applyNewProfilePhoto(photoSrc, notify = true) {
+    if (!currentUser) return;
+    const resolvedPhoto = resolvePhoto(photoSrc);
+
+    // 1. Actualizar elementos visuales en pantalla de inmediato
+    const profileUserAvatar = document.getElementById("profileUserAvatar");
+    const headerUserAvatar = document.getElementById("headerUserAvatar");
+    if (profileUserAvatar) profileUserAvatar.src = resolvedPhoto;
+    if (headerUserAvatar) headerUserAvatar.src = resolvedPhoto;
+
+    // 2. Actualizar estado en memoria
+    if (currentUserData) {
+      currentUserData.photoURL = resolvedPhoto;
+    }
+
+    // 3. Persistir en localStorage
+    try {
+      localStorage.setItem(`altevrashop_avatar_${currentUser.uid}`, resolvedPhoto);
+      if (currentUser.email) {
+        localStorage.setItem(`altevrashop_avatar_${currentUser.email}`, resolvedPhoto);
+      }
+      const cachedKey = `altevrashop_profile_${currentUser.uid}`;
+      const cached = localStorage.getItem(cachedKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        parsed.photoURL = resolvedPhoto;
+        localStorage.setItem(cachedKey, JSON.stringify(parsed));
+      }
+    } catch (e) {
+      console.warn("No se pudo guardar la foto en localStorage:", e);
+    }
+
+    // 4. Sincronizar con Firestore si cumple la regla de tamaño
+    if (resolvedPhoto.length <= 2048) {
+      try {
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          photoURL: resolvedPhoto,
+          updatedAt: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn("No se pudo sincronizar photoURL en Firestore:", e);
+      }
+    }
+
+    // 5. Intentar actualizar Firebase Auth
+    if (auth?.currentUser && (resolvedPhoto.startsWith("https://") || resolvedPhoto.length <= 2048)) {
+      try {
+        await updateProfile(auth.currentUser, { photoURL: resolvedPhoto });
+      } catch (e) {
+        console.warn("No se pudo actualizar photoURL en Firebase Auth:", e);
+      }
+    }
+
+    if (notify) {
+      showToast("Foto de perfil actualizada con éxito.");
+    }
+  }
+
+  // Abrir selector de archivos al hacer click en el avatar o botón "Subir Foto"
+  const triggerFileInput = () => avatarFileInput?.click();
+  avatarWrapper?.addEventListener("click", triggerFileInput);
+  btnTriggerAvatarBadge?.addEventListener("click", e => {
+    e.stopPropagation();
+    triggerFileInput();
+  });
+  btnUploadAvatar?.addEventListener("click", triggerFileInput);
+
+  // Manejar selección de archivo de imagen
+  avatarFileInput?.addEventListener("change", e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Por favor selecciona un archivo de imagen válido (PNG, JPG o WEBP).");
+      avatarFileInput.value = "";
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      showToast("La imagen supera los 8MB. Elige una imagen más liviana.");
+      avatarFileInput.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const img = new Image();
+      img.onload = () => {
+        // Redimensionar y recortar en cuadrado centrado óptimo para avatar (256x256)
+        const canvas = document.createElement("canvas");
+        const targetSize = 256;
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+        const ctx = canvas.getContext("2d");
+
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, targetSize, targetSize);
+
+        // Convertir a JPEG optimizado
+        const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.86);
+        applyNewProfilePhoto(optimizedDataUrl);
+      };
+      img.onerror = () => {
+        showToast("No se pudo procesar la imagen seleccionada.");
+      };
+      img.src = evt.target.result;
+    };
+    reader.onerror = () => {
+      showToast("Error al leer el archivo desde el dispositivo.");
+    };
+    reader.readAsDataURL(file);
+    avatarFileInput.value = "";
+  });
+
+  // Toggle de contenedor para ingresar URL
+  btnToggleAvatarUrl?.addEventListener("click", () => {
+    if (!avatarUrlContainer) return;
+    const isHidden = avatarUrlContainer.style.display === "none";
+    avatarUrlContainer.style.display = isHidden ? "flex" : "none";
+    if (isHidden && avatarUrlField) {
+      avatarUrlField.value = "";
+      avatarUrlField.focus();
+    }
+  });
+
+  btnCancelAvatarUrl?.addEventListener("click", () => {
+    if (avatarUrlContainer) avatarUrlContainer.style.display = "none";
+  });
+
+  btnApplyAvatarUrl?.addEventListener("click", () => {
+    const url = avatarUrlField?.value?.trim();
+    if (!url) {
+      showToast("Ingresa un enlace de imagen válido.");
+      return;
+    }
+    if (!url.startsWith("https://") && !url.startsWith("http://")) {
+      showToast("El enlace debe comenzar con https://");
+      return;
+    }
+    applyNewProfilePhoto(url);
+    if (avatarUrlContainer) avatarUrlContainer.style.display = "none";
+  });
+
+  // Restablecer foto por defecto
+  btnResetAvatar?.addEventListener("click", () => {
+    applyNewProfilePhoto("img/register_panel.png");
+  });
+
+  // Envío del formulario de perfil (nombre y apellidos)
   if (form) {
     form.addEventListener("submit", async e => {
       e.preventDefault();
@@ -1645,15 +1829,33 @@ function initProfile() {
       }
 
       try {
-        await updateDoc(doc(db, "users", currentUser.uid), {
+        const updatePayload = {
           firstName,
           lastName,
           updatedAt: serverTimestamp()
-        });
+        };
+        if (currentUserData?.photoURL && currentUserData.photoURL.length <= 2048) {
+          updatePayload.photoURL = currentUserData.photoURL;
+        }
+
+        await updateDoc(doc(db, "users", currentUser.uid), updatePayload);
         currentUserData = { ...currentUserData, firstName, lastName };
         const displayName = `${firstName} ${lastName}`.trim();
         document.getElementById("headerUserName").textContent = displayName;
         document.getElementById("profileDisplayName").textContent = displayName;
+
+        // Actualizar caché local de perfil
+        try {
+          const cachedKey = `altevrashop_profile_${currentUser.uid}`;
+          const cached = localStorage.getItem(cachedKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            parsed.firstName = firstName;
+            parsed.lastName = lastName;
+            localStorage.setItem(cachedKey, JSON.stringify(parsed));
+          }
+        } catch (err) {}
+
         showToast("Datos de perfil guardados.");
       } catch (error) {
         console.error("No se pudo actualizar el perfil:", error);

@@ -86,11 +86,14 @@ body {
   align-items: center;
 }
 
-.brand-name .pay {
+.brand-name .pay,
+.brand-name .altevra {
   color: #0f172a;
 }
 
-.brand-name .nex {
+.brand-name .nex,
+.brand-name .shop,
+.brand-name span {
   background: linear-gradient(135deg, #7c3aed, #d946ef);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

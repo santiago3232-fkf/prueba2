@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * PAYNEX CHATBOT ASISTENTE VIRTUAL (NEXY)
+ * ALTEVRASHOP CHATBOT ASISTENTE VIRTUAL (NEXY)
  * ==============================================================================
  * Ubicación: Flotante inferior izquierda (Bottom-Left)
  * Seguridad: Sanitización completa contra XSS, sin eval, validación de entrada,
@@ -11,12 +11,12 @@
 (function () {
   'use strict';
 
-  // Configuración global del asistente PayNex
+  // Configuración global del asistente Altevrashop
   const BOT_CONFIG = {
     botName: "Nexy",
-    botTitle: "Asistente PayNex",
+    botTitle: "Asistente Altevrashop",
     botStatus: "Asistente automático",
-    avatarImg: "img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png",
+    avatarImg: "img/isologo_square.png",
     supportEmail: "san.18gutierrez@gmail.com",
     supportPhone: "3224045855",
     supportPhoneFormatted: "+57 322 404 5855",
@@ -27,7 +27,7 @@
     typingDelayMs: 650
   };
 
-  ["paynex_chat_history_v2", "paynex_chat_muted_v1"].forEach(key => {
+  ["altevrashop_chat_history_v2", "altevrashop_chat_muted_v1", "paynex_chat_history_v2", "paynex_chat_muted_v1"].forEach(key => {
     try {
       localStorage.removeItem(key);
     } catch (error) {
@@ -35,28 +35,28 @@
     }
   });
 
-  // Respuestas limitadas a las funciones y condiciones publicadas de PayNex
+  // Respuestas limitadas a las funciones y condiciones publicadas de Altevrashop
   const KNOWLEDGE_BASE = [
     {
       keywords: ["hola", "buenas", "buenos dias", "buenas tardes", "buenas noches", "saludos", "hey", "inicio"],
-      response: `¡Hola! Soy **${BOT_CONFIG.botName}**, el asistente informativo de **PayNex** 🚀\n\n` +
+      response: `¡Hola! Soy **${BOT_CONFIG.botName}**, el asistente informativo de **Altevrashop** 🚀\n\n` +
         `Puedes explorar los productos publicados, realizar compras protegidas y gestionar el estado de tus pedidos en tiempo real (En proceso, En bodega, Enviado, Entregado).\n\n` +
         `¿En qué puedo orientarte hoy?`,
-      chips: ["📞 Contacto Directo", "🌟 ¿Qué es PayNex?", "🛍️ Productos", "🚀 ¿Cómo Vender?"]
+      chips: ["📞 Contacto Directo", "🌟 ¿Qué es Altevrashop?", "🛍️ Productos", "🚀 ¿Cómo Vender?"]
     },
     {
       keywords: ["contacto", "telefono", "whatsapp", "correo", "email", "soporte", "asesor", "hablar con", "atencion", "comunicarme", "numero", "donde estan", "oficina", "llamar", "celular", "santiago", "gutierrez"],
       response: `📞 **Datos de contacto publicados**:\n\n` +
-        `• 📱 **WhatsApp:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20informaci%C3%B3n%20sobre%20PayNex)\n` +
+        `• 📱 **WhatsApp:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20informaci%C3%B3n%20sobre%20Altevrashop)\n` +
         `• ☎️ **Teléfono / Llamadas:** [${BOT_CONFIG.supportPhone}](tel:${BOT_CONFIG.supportPhone})\n` +
         `• ✉️ **Correo Electrónico:** [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail})\n` +
         `• Trazabilidad de pedidos y estados en tiempo real.`,
       chips: ["💬 Abrir WhatsApp", "📞 Llamar ahora", "✉️ Enviar correo", "🛍️ Ver Productos"]
     },
     {
-      keywords: ["que es paynex", "que es painex", "painex", "paynex", "de que trata", "que hacen", "plataforma", "para que sirve", "sobre ustedes", "servicio", "empresa de tecnologia"],
-      response: `🌟 **¿Qué es PayNex?**\n\n` +
-        `PayNex es una plataforma de comercio electrónico donde puedes comprar y vender productos de manera segura, con seguimiento de pedidos, trazabilidad de envíos (En bodega, Enviado, En proceso, Entregado) y cumplimiento de normativas legales.`,
+      keywords: ["que es altevrashop", "que es altevra", "altevrashop", "altevra", "que es paynex", "que es painex", "painex", "paynex", "de que trata", "que hacen", "plataforma", "para que sirve", "sobre ustedes", "servicio", "empresa de tecnologia"],
+      response: `🌟 **¿Qué es Altevrashop?**\n\n` +
+        `Altevrashop es una plataforma de comercio electrónico donde puedes comprar y vender productos de manera segura, con seguimiento de pedidos, trazabilidad de envíos (En bodega, Enviado, En proceso, Entregado) y cumplimiento de normativas legales.`,
       chips: ["🎯 Misión y Visión", "💡 Problemática que resolvemos", "💎 Valores Corporativos", "🚀 ¿Cómo Emprender?"]
     },
     {
@@ -68,42 +68,42 @@
     {
       keywords: ["menores de edad", "menor de edad", "puedo vender si soy menor", "menor", "edad minima", "requisitos edad", "jovenes", "adolescentes", "cuentas bancarias"],
       response: `👶 **¿Puedo vender y emprender si soy menor de edad?**\n\n` +
-        `No podemos confirmar requisitos legales o de edad para vender. PayNex no ofrece representación legal; si eres menor, consulta primero con tu madre, padre o tutor y con asesoría legal local. Esta versión tampoco procesa pagos ni pedidos.`,
+        `No podemos confirmar requisitos legales o de edad para vender. Altevrashop no ofrece representación legal; si eres menor, consulta primero con tu madre, padre o tutor y con asesoría legal local. Esta versión tampoco procesa pagos ni pedidos.`,
       chips: ["📦 Estado de pedidos", "📞 Contacto", "🔑 Iniciar sesión"]
     },
     {
       keywords: ["mision", "nuestra mision", "cual es la mision"],
-      response: `🎯 **PayNex** es un proyecto en desarrollo para consultar publicaciones y administrar catálogos. Esta descripción no implica garantías de seguridad, ventas ni resultados. Actualmente no se procesan compras, pagos ni envíos.`,
+      response: `🎯 **Altevrashop** es un proyecto en desarrollo para consultar publicaciones y administrar catálogos. Esta descripción no implica garantías de seguridad, ventas ni resultados. Actualmente no se procesan compras, pagos ni envíos.`,
       chips: ["🔭 Nuestra Visión", "💎 Valores Corporativos", "🚀 Emprender"]
     },
     {
       keywords: ["vision", "nuestra vision", "cual es la vision", "futuro"],
       response: `🔭 **Estado del proyecto**:\n\n` +
-        `PayNex está en desarrollo. No publicamos cifras verificadas de usuarios, ventas ni cobertura; los pedidos, pagos y envíos aún no están disponibles.`,
+        `Altevrashop está en desarrollo. No publicamos cifras verificadas de usuarios, ventas ni cobertura; los pedidos, pagos y envíos aún no están disponibles.`,
       chips: ["🎯 Objetivos", "💎 Valores Corporativos", "🛍️ Ver Productos"]
     },
     {
       keywords: ["valores", "valores corporativos", "principios", "filosofia"],
-      response: `💎 **Valores Corporativos de PayNex**:\n\n` +
+      response: `💎 **Valores Corporativos de Altevrashop**:\n\n` +
         `1️⃣ **Innovación:** Crear soluciones modernas y eficientes para nuestros usuarios.\n` +
         `2️⃣ **Transparencia:** Informar qué funciones están disponibles y cuáles siguen en desarrollo.\n` +
         `3️⃣ **Compromiso:** Mejorar el catálogo y las herramientas para vendedores. Estos principios no son una garantía de seguridad o resultados comerciales.`,
-      chips: ["🌟 ¿Qué es PayNex?", "🛡️ Seguridad y Pagos", "📞 Contacto"]
+      chips: ["🌟 ¿Qué es Altevrashop?", "🛡️ Seguridad y Pagos", "📞 Contacto"]
     },
     {
       keywords: ["objetivos", "objetivo general", "objetivos especificos", "metas"],
-      response: `📈 **Estado de PayNex**:\n\n` +
+      response: `📈 **Estado de Altevrashop**:\n\n` +
         `El proyecto está en desarrollo y no hay resultados comerciales, cifras de uso ni metas alcanzadas verificadas para compartir. En esta versión funcionan las publicaciones de productos para cuentas existentes.`,
       chips: ["🔭 Nuestra Visión", "🚀 ¿Cómo Vender?", "📞 Contacto"]
     },
     {
       keywords: ["equipo", "quienes forman", "fundadores", "creadores", "organigrama", "estructura", "santiago gutierrez", "daniel paez", "samuel paez", "jostin gonzales"],
-      response: `👥 PayNex es un proyecto en desarrollo. Para consultas sobre el catálogo o una cuenta existente, utiliza los datos de contacto publicados en esta página.`,
-      chips: ["📞 Contactar con Santiago", "🌟 Sobre PayNex", "🛍️ Tienda"]
+      response: `👥 Altevrashop es un proyecto en desarrollo. Para consultas sobre el catálogo o una cuenta existente, utiliza los datos de contacto publicados en esta página.`,
+      chips: ["📞 Contactar con Santiago", "🌟 Sobre Altevrashop", "🛍️ Tienda"]
     },
     {
-      keywords: ["producto painex", "producto paynex", "productos painex", "productos paynex", "informacion painex", "informacion paynex", "informacion del producto"],
-      response: `✨ **PayNex** es un marketplace en desarrollo. El catálogo muestra los productos publicados en la plataforma; verifica precio y disponibilidad con el vendedor. Las compras y pagos todavía no están habilitados.\n\n` +
+      keywords: ["producto altevrashop", "producto altevra", "productos altevrashop", "productos altevra", "producto painex", "producto paynex", "productos painex", "productos paynex", "informacion painex", "informacion paynex", "informacion del producto"],
+      response: `✨ **Altevrashop** es un marketplace en desarrollo. El catálogo muestra los productos publicados en la plataforma; verifica precio y disponibilidad con el vendedor. Las compras y pagos todavía no están habilitados.\n\n` +
         `• **Contacto:** [${BOT_CONFIG.supportWhatsappFormatted}](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o [${BOT_CONFIG.supportEmail}](mailto:${BOT_CONFIG.supportEmail}).`,
       chips: ["🏬 Ver Tienda", "📞 Contactar Asesor", "🚀 ¿Cómo Vender?"]
     },
@@ -124,12 +124,12 @@
     },
     {
       keywords: ["smartwatch", "reloj", "serie 8"],
-      response: `Consulta las publicaciones actuales para ver smartwatches y accesorios con garantía y compra directa en PayNex.`,
+      response: `Consulta las publicaciones actuales para ver smartwatches y accesorios con garantía y compra directa en Altevrashop.`,
       chips: ["🏬 Ir al catálogo", "📞 Contacto"]
     },
     {
       keywords: ["vender", "emprender", "vendedor", "publicar", "como vendo", "ganar dinero", "comisiones", "subir producto", "mi negocio"],
-      response: `¡Emprender en PayNex es muy fácil! Regístrate con rol vendedor, publica tus productos en el catálogo y gestiona los pedidos recibidos actualizando sus estados (En proceso, En bodega, Enviado, Entregado).`,
+      response: `¡Emprender en Altevrashop es muy fácil! Regístrate con rol vendedor, publica tus productos en el catálogo y gestiona los pedidos recibidos actualizando sus estados (En proceso, En bodega, Enviado, Entregado).`,
       chips: ["🔑 Iniciar sesión", "📞 Contacto", "🛍️ Mis Ventas"]
     },
     {
@@ -139,7 +139,7 @@
     },
     {
       keywords: ["seguridad", "seguro", "confiable", "estafa", "garantia", "fraude", "devolucion", "protegido", "confianza", "terminos", "condiciones"],
-      response: `En PayNex contamos con un módulo avanzado de Seguridad y Cumplimiento Normativo (Términos & Condiciones bajo Ley 1581 Habeas Data y Ley 1480 del Consumidor). Puedes probar nuestro **Simulador de Seguridad** en cualquier momento desde el menú o al comprar.`,
+      response: `En Altevrashop contamos con un módulo avanzado de Seguridad y Cumplimiento Normativo (Términos & Condiciones bajo Ley 1581 Habeas Data y Ley 1480 del Consumidor). Puedes probar nuestro **Simulador de Seguridad** en cualquier momento desde el menú o al comprar.`,
       chips: ["🛡️ Simulador de Seguridad", "📦 Mis Compras", "🛍️ Ver Productos"]
     },
     {
@@ -149,12 +149,12 @@
     },
     {
       keywords: ["pago", "pagos", "metodos de pago", "tarjeta", "nequi", "daviplata", "pse", "efectivo", "bancolombia"],
-      response: `PayNex cuenta con pasarela integrada y retiros para vendedores a Nequi. Las órdenes se procesan con validación de consentimiento y alta disponibilidad.`,
+      response: `Altevrashop cuenta con pasarela integrada y retiros para vendedores a Nequi. Las órdenes se procesan con validación de consentimiento y alta disponibilidad.`,
       chips: ["🛡️ Seguridad de Pagos", "🏬 Ir a la Tienda"]
     },
     {
       keywords: ["registro", "cuenta", "iniciar sesion", "login", "registrarse", "olvide mi contraseña", "olvide clave", "acceder"],
-      response: `🔑 **Gestión de Cuenta PayNex**:\n\n` +
+      response: `🔑 **Gestión de Cuenta Altevrashop**:\n\n` +
         `• Para iniciar sesión: [login.html](login.html)\n` +
         `• Puedes crear una cuenta desde la pantalla de registro aceptando los términos y condiciones.\n` +
         `• Si olvidaste tu contraseña, desde la pantalla de login puedes restablecerla con tu correo electrónico.`,
@@ -162,7 +162,7 @@
     },
     {
       keywords: ["gracias", "muchas gracias", "vale", "perfecto", "genial", "listo", "ok", "excelente"],
-      response: `¡Con mucho gusto! 😊 En **PayNex** creemos en el talento de quienes emprenden. Si tienes más dudas, contáctanos al WhatsApp **${BOT_CONFIG.supportPhoneFormatted}** o al correo **${BOT_CONFIG.supportEmail}**. ¡Muchos éxitos! ✨`,
+      response: `¡Con mucho gusto! 😊 En **Altevrashop** creemos en el talento de quienes emprenden. Si tienes más dudas, contáctanos al WhatsApp **${BOT_CONFIG.supportPhoneFormatted}** o al correo **${BOT_CONFIG.supportEmail}**. ¡Muchos éxitos! ✨`,
       chips: ["📞 Contactar Asesor", "🛍️ Ver Productos", "🚀 Emprender"]
     },
     {
@@ -175,7 +175,7 @@
   // Respuesta por defecto cuando no se reconoce la intención
   const DEFAULT_FALLBACK = {
     response: `Disculpa, no entendí completamente tu mensaje. 🤔\n\n¿Podrías elegir uno de los siguientes temas o comunicarte directamente con nosotros al WhatsApp **${BOT_CONFIG.supportPhoneFormatted}**?`,
-    chips: ["📞 Contacto y Soporte", "🌟 ¿Qué es PayNex?", "🛍️ Catálogo de Productos", "🚀 ¿Cómo Vender?"]
+    chips: ["📞 Contacto y Soporte", "🌟 ¿Qué es Altevrashop?", "🛍️ Catálogo de Productos", "🚀 ¿Cómo Vender?"]
   };
 
   // Sanitizador de texto contra XSS (Seguridad de primera categoría)
@@ -234,7 +234,7 @@
 
     if (!normalized) {
       return {
-        response: `¡Hola! Por favor escribe tu duda o consulta sobre **PayNex** para poder ayudarte.`,
+        response: `¡Hola! Por favor escribe tu duda o consulta sobre **Altevrashop** para poder ayudarte.`,
         chips: ["📞 Contacto", "🛍️ Productos", "🚀 ¿Cómo Vender?"]
       };
     }
@@ -306,7 +306,7 @@
   }
 
   // Clase Principal del Chatbot
-  class PayNexChatbot {
+  class AltevrashopChatbot {
     constructor() {
       this.isOpen = false;
       this.isTyping = false;
@@ -339,17 +339,17 @@
       container.id = "pnChatContainer";
       container.className = "pn-chat-container";
       container.setAttribute("role", "complementary");
-      container.setAttribute("aria-label", "Asistente Virtual PayNex");
+      container.setAttribute("aria-label", "Asistente Virtual Altevrashop");
 
       // Inyectar HTML estructural del Widget
       container.innerHTML = `
         <!-- Tooltip de bienvenida -->
         <div class="pn-chat-tooltip" id="pnChatTooltip">
-          <span>👋 ¡Hola! ¿Necesitas ayuda con <strong>PayNex</strong>?</span>
+          <span>👋 ¡Hola! ¿Necesitas ayuda con <strong>Altevrashop</strong>?</span>
         </div>
 
         <!-- Botón Disparador Flotante (Launcher) -->
-        <button class="pn-chat-launcher" id="pnChatLauncher" aria-label="Abrir asistente de ayuda" title="Chat de ayuda PayNex">
+        <button class="pn-chat-launcher" id="pnChatLauncher" aria-label="Abrir asistente de ayuda" title="Chat de ayuda Altevrashop">
           <div class="pn-chat-pulse"></div>
           
           <!-- Icono Abrir (Robot/Mensaje) -->
@@ -422,8 +422,8 @@
 
           <!-- Banner Informativo -->
           <div class="pn-chat-welcome-banner">
-            <span>⚡ <strong>PayNex:</strong> Catálogo e información</span>
-            <a href="https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20asistencia%20en%20PayNex" target="_blank" rel="noopener noreferrer" style="color: #16a34a; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:3px;">
+            <span>⚡ <strong>Altevrashop:</strong> Catálogo e información</span>
+            <a href="https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20asistencia%20en%20Altevrashop" target="_blank" rel="noopener noreferrer" style="color: #16a34a; font-weight:700; text-decoration:none; display:flex; align-items:center; gap:3px;">
               <span>WhatsApp (${BOT_CONFIG.supportPhone})</span> ↗
             </a>
           </div>
@@ -445,7 +445,7 @@
                 type="text" 
                 id="pnChatInput" 
                 class="pn-chat-input" 
-                placeholder="Escribe tu pregunta sobre PayNex..." 
+                placeholder="Escribe tu pregunta sobre Altevrashop..." 
                 maxlength="${BOT_CONFIG.maxInputChars}"
                 aria-label="Mensaje para el asistente"
               />
@@ -685,7 +685,7 @@
 
     handleQuickChip(text) {
       if (text.includes("WhatsApp") || text.includes("Hablar con Santiago") || text.includes("Contactar con Santiago")) {
-        window.open(`https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20tengo%20una%20consulta%20sobre%20PayNex`, "_blank", "noopener,noreferrer");
+        window.open(`https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20tengo%20una%20consulta%20sobre%20Altevrashop`, "_blank", "noopener,noreferrer");
         return;
       }
       if (text.includes("Llamar")) {
@@ -693,7 +693,7 @@
         return;
       }
       if (text.includes("correo") || text.includes("Email")) {
-        window.location.href = `mailto:${BOT_CONFIG.supportEmail}?subject=Consulta%20PayNex`;
+        window.location.href = `mailto:${BOT_CONFIG.supportEmail}?subject=Consulta%20Altevrashop`;
         return;
       }
       if (text.includes("Ir a la Tienda") || text.includes("Catálogo") || text.includes("Ver Tienda") || text.includes("Tienda")) {
@@ -755,7 +755,7 @@
         if (lowerQuery.includes("contacto") || lowerQuery.includes("whatsapp") || lowerQuery.includes("telefono") || lowerQuery.includes("correo") || lowerQuery.includes("llamar") || lowerQuery.includes("santiago")) {
           actionButtons.push({
             text: `WhatsApp (+57 ${BOT_CONFIG.supportPhone})`,
-            url: `https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20asistencia%20en%20PayNex`,
+            url: `https://wa.me/${BOT_CONFIG.supportWhatsapp}?text=Hola%20Santiago,%20solicito%20asistencia%20en%20Altevrashop`,
             target: "_blank",
             type: "whatsapp",
             icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.634.053-1.042-.08-.26-.084-.593-.207-1.026-.395-1.834-.798-3.033-2.656-3.125-2.778-.092-.122-.746-.994-.746-1.896 0-.903.473-1.346.641-1.528.169-.182.368-.228.49-.228.123 0 .245.002.352.007.112.006.262-.042.41.312.152.365.518 1.264.563 1.356.046.091.077.198.016.319-.061.122-.092.198-.184.305-.091.107-.193.24-.275.322-.093.092-.19.192-.082.378.107.183.478.788 1.026 1.275.706.629 1.301.823 1.485.914.184.092.291.076.398-.046.108-.122.46-.534.582-.717.123-.183.246-.153.414-.092.169.061 1.073.506 1.257.598.184.092.307.137.352.213.046.076.046.442-.098.847z"/></svg>`
@@ -768,7 +768,7 @@
           });
           actionButtons.push({
             text: "Enviar Correo",
-            url: `mailto:${BOT_CONFIG.supportEmail}?subject=Contacto%20PayNex`,
+            url: `mailto:${BOT_CONFIG.supportEmail}?subject=Contacto%20Altevrashop`,
             target: "_self",
             icon: "✉️"
           });
@@ -847,15 +847,15 @@
     loadHistory() {
       const welcomeMsg = {
         sender: "bot",
-        text: `¡Hola! Bienvenido a **PayNex** 👋 Soy **${BOT_CONFIG.botName}**, tu asistente virtual.\n\n` +
-              `En PayNex puedes explorar el catálogo, realizar compras seguras, seguir el estado de tus envíos (En bodega, Enviado, En proceso, Entregado) y gestionar tu tienda.\n\n` +
+        text: `¡Hola! Bienvenido a **Altevrashop** 👋 Soy **${BOT_CONFIG.botName}**, tu asistente virtual.\n\n` +
+              `En Altevrashop puedes explorar el catálogo, realizar compras seguras, seguir el estado de tus envíos (En bodega, Enviado, En proceso, Entregado) y gestionar tu tienda.\n\n` +
               `📞 **Contacto Directo:** WhatsApp / Tel al [**${BOT_CONFIG.supportPhoneFormatted}**](https://wa.me/${BOT_CONFIG.supportWhatsapp}) o al correo [**${BOT_CONFIG.supportEmail}**](mailto:${BOT_CONFIG.supportEmail}).\n\n` +
               `¿En qué te gustaría que te ayude hoy?`,
         timestamp: new Date().toISOString()
       };
       this.messages.push(welcomeMsg);
       this.appendMessageToDOM(welcomeMsg);
-      this.renderSuggestions(["📞 Contacto Directo", "🌟 ¿Qué es PayNex?", "🛍️ Ver Productos", "🚀 ¿Cómo Vender?"]);
+      this.renderSuggestions(["📞 Contacto Directo", "🌟 ¿Qué es Altevrashop?", "🛍️ Ver Productos", "🚀 ¿Cómo Vender?"]);
     }
 
     resetChat() {
@@ -868,6 +868,7 @@
   }
 
   // Inicializar automáticamente cuando el script se cargue
-  window.PayNexChat = new PayNexChatbot();
+  window.AltevrashopChat = new AltevrashopChatbot();
+  window.PayNexChat = window.AltevrashopChat;
 
 })();

@@ -39,7 +39,8 @@ body {
   justify-content: center;
 }
 
-.paynex-card {
+.paynex-card,
+.altevrashop-card {
   position: relative;
   background: #ffffff;
   border-radius: var(--radius-card);
@@ -88,7 +89,8 @@ body {
 }
 
 /* Banner Izquierdo */
-.paynex-banner {
+.paynex-banner,
+.altevrashop-banner {
   width: 44%;
   padding: 35px;
   display: flex;
@@ -98,11 +100,13 @@ body {
   overflow: hidden;
 }
 
-.paynex-banner.banner-purple {
+.paynex-banner.banner-purple,
+.altevrashop-banner.banner-purple {
   background: linear-gradient(145deg, #f5f0ff 0%, #e8dcff 100%);
 }
 
-.paynex-banner.banner-green {
+.paynex-banner.banner-green,
+.altevrashop-banner.banner-green {
   background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
@@ -134,6 +138,12 @@ body {
   letter-spacing: -0.5px;
 }
 
+.logo-text span {
+  background: linear-gradient(135deg, #7c3aed, #d946ef);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 .banner-content h2 {
   font-size: 22px;
   font-weight: 800;
@@ -162,7 +172,8 @@ body {
 }
 
 /* Panel Formulario */
-.paynex-form-container {
+.paynex-form-container,
+.altevrashop-form-container {
   width: 56%;
   padding: 40px 45px;
   display: flex;
@@ -408,13 +419,15 @@ body {
     width: 100%;
     margin: auto;
   }
-  .paynex-card {
+  .paynex-card,
+  .altevrashop-card {
     flex-direction: column;
     min-height: auto;
     border-radius: 20px;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   }
-  .paynex-banner {
+  .paynex-banner,
+  .altevrashop-banner {
     width: 100%;
     padding: 22px 20px 14px 20px;
   }
@@ -436,7 +449,8 @@ body {
     font-size: 12.5px;
     line-height: 1.45;
   }
-  .paynex-form-container {
+  .paynex-form-container,
+  .altevrashop-form-container {
     width: 100%;
     padding: 22px 20px 28px 20px;
   }
@@ -468,13 +482,16 @@ body {
   body {
     padding: 8px;
   }
-  .paynex-card {
+  .paynex-card,
+  .altevrashop-card {
     border-radius: 16px;
   }
-  .paynex-banner {
+  .paynex-banner,
+  .altevrashop-banner {
     padding: 18px 16px 12px 16px;
   }
-  .paynex-form-container {
+  .paynex-form-container,
+  .altevrashop-form-container {
     padding: 18px 16px 24px 16px;
   }
   .form-header h1 {

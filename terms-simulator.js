@@ -1,5 +1,5 @@
 /**
- * PayNex - Módulo y Simulador de Seguridad de Términos y Condiciones
+ * Altevrashop - Módulo y Simulador de Seguridad de Términos y Condiciones
  * Implementa validación de consentimiento, auditoría legal y simulación criptográfica
  */
 
@@ -22,7 +22,7 @@ export function getTermsModalHTML() {
             🛡️
           </div>
           <div>
-            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: #fff;">Simulador de Seguridad & Términos PayNex</h3>
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: #fff;">Simulador de Seguridad & Términos Altevrashop</h3>
             <span style="font-size: 12px; color: #a5b4fc;">Módulo de Cumplimiento Legal y Verificación Criptográfica v${TERMS_CONFIG.version}</span>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function getTermsModalHTML() {
 
           <!-- Consola de Resultados en Tiempo Real -->
           <div style="background: #0f172a; border-radius: 12px; padding: 16px; color: #f8fafc; font-family: monospace; font-size: 12px; min-height: 120px; max-height: 200px; overflow-y: auto;" id="simulatorConsole">
-            <span style="color: #64748b;">[CONSOLA DE SEGURIDAD PAYNEX - V${TERMS_CONFIG.version}]</span><br>
+            <span style="color: #64748b;">[CONSOLA DE SEGURIDAD ALTEVRASHOP - V${TERMS_CONFIG.version}]</span><br>
             <span style="color: #10b981;">✔ Validador de consentimiento inicializado.</span><br>
             <span style="color: #94a3b8;">Presiona cualquiera de los botones de prueba para ejecutar una simulación.</span>
           </div>
@@ -119,23 +119,23 @@ export function getTermsModalHTML() {
 
         <!-- PESTAÑA 2: DOCUMENTO OFICIAL DE TÉRMINOS -->
         <div id="tabContentDocument" style="display: none; font-size: 13.5px; line-height: 1.6; color: #334155;">
-          <h4 style="color: #0f172a; margin-bottom: 6px; font-size: 16px;">TÉRMINOS Y CONDICIONES DE USO DE LA PLATAFORMA PAYNEX</h4>
+          <h4 style="color: #0f172a; margin-bottom: 6px; font-size: 16px;">TÉRMINOS Y CONDICIONES DE USO DE LA PLATAFORMA ALTEVRASHOP</h4>
           <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Versión oficial 2.4 | Última actualización: ${TERMS_CONFIG.lastUpdated}</p>
 
           <h5 style="color: #1e293b; margin-top: 14px; font-size: 14px;">1. OBJETO Y ACEPTACIÓN DE LAS PARTES</h5>
-          <p>El acceso, registro y utilización del marketplace PayNex implica la aceptación expresa, libre, informada y vinculante de los presentes Términos y Condiciones. Cualquier transacción efectuada a través del sistema goza de validez jurídica de acuerdo con la Ley 527 de 1999 de Comercio Electrónico.</p>
+          <p>El acceso, registro y utilización del marketplace Altevrashop implica la aceptación expresa, libre, informada y vinculante de los presentes Términos y Condiciones. Cualquier transacción efectuada a través del sistema goza de validez jurídica de acuerdo con la Ley 527 de 1999 de Comercio Electrónico.</p>
 
           <h5 style="color: #1e293b; margin-top: 14px; font-size: 14px;">2. PROCESO DE COMPRA Y TRAZABILIDAD DE ESTADOS</h5>
           <p>Toda orden realizada genera un registro trazable con número único de pedido. El comprador y el vendedor recibirán notificaciones en tiempo real del ciclo de vida del pedido, el cual transitará por los estados reglamentarios: <strong>En proceso</strong>, <strong>En bodega</strong>, <strong>Enviado</strong> y <strong>Entregado</strong>.</p>
 
           <h5 style="color: #1e293b; margin-top: 14px; font-size: 14px;">3. TRATAMIENTO DE DATOS PERSONALES (HABEAS DATA)</h5>
-          <p>En cumplimiento de la Ley 1581 de 2012 y el Decreto 1377 de 2013, PayNex recolecta y trata los datos personales de sus usuarios con fines estrictamente transaccionales, de seguridad, facturación y despacho. El usuario tiene derecho en cualquier momento a consultar, actualizar o suprimir sus datos.</p>
+          <p>En cumplimiento de la Ley 1581 de 2012 y el Decreto 1377 de 2013, Altevrashop recolecta y trata los datos personales de sus usuarios con fines estrictamente transaccionales, de seguridad, facturación y despacho. El usuario tiene derecho en cualquier momento a consultar, actualizar o suprimir sus datos.</p>
 
           <h5 style="color: #1e293b; margin-top: 14px; font-size: 14px;">4. SEGURIDAD DE PAGOS Y PROTECCIÓN AL CONSUMIDOR</h5>
           <p>Todas las operaciones financieras se procesan bajo protocolos de cifrado TLS 1.3 y verificación de firma digital. El comprador cuenta con el derecho de retracto conforme al Estatuto del Consumidor (Ley 1480 de 2011) en un plazo de cinco (5) días hábiles tras la entrega del bien.</p>
 
           <h5 style="color: #1e293b; margin-top: 14px; font-size: 14px;">5. MECANISMO DE CONTINGENCIA Y ALTA DISPONIBILIDAD</h5>
-          <p>Para asegurar la continuidad ininterrumpida de las compras, ante fallas temporales de conexión o sincronización de reglas de base de datos, PayNex activa automáticamente una capa de contingencia segura que almacena el pedido localmente garantizando su preservación y posterior liquidación.</p>
+          <p>Para asegurar la continuidad ininterrumpida de las compras, ante fallas temporales de conexión o sincronización de reglas de base de datos, Altevrashop activa automáticamente una capa de contingencia segura que almacena el pedido localmente garantizando su preservación y posterior liquidación.</p>
         </div>
 
         <!-- PESTAÑA 3: AUDITORÍA DE CUMPLIMIENTO -->
@@ -189,7 +189,7 @@ export function getTermsModalHTML() {
       <!-- Pie de Modal -->
       <div style="padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 12px; color: #64748b;">
-          🛡️ Validación de Seguridad PayNex Enterprise
+          🛡️ Validación de Seguridad Altevrashop Enterprise
         </span>
         <button type="button" class="btn-primary-action" id="btnAcceptTermsAndClose" style="padding: 8px 18px; font-size: 13px;">
           Entendido / Cerrar
@@ -320,7 +320,7 @@ export function initTermsSimulator(options = {}) {
   document.getElementById("btnDownloadCert")?.addEventListener("click", () => {
     const certText = `=====================================================
 CERTIFICADO DE CUMPLIMIENTO DE SEGURIDAD Y TÉRMINOS
-PAYNEX ENTERPRISE v${TERMS_CONFIG.version}
+ALTEVRASHOP ENTERPRISE v${TERMS_CONFIG.version}
 =====================================================
 Fecha de emisión: ${new Date().toLocaleString("es-CO")}
 Estado de la plataforma: PRODUCCIÓN / ALTA DISPONIBILIDAD
@@ -341,12 +341,12 @@ Hash del contrato oficial:
 ${TERMS_CONFIG.contractHash}
 
 =====================================================
-Certificado emitido electrónicamente por el sistema PayNex.
+Certificado emitido electrónicamente por el sistema Altevrashop.
 =====================================================`;
     const blob = new Blob([certText], { type: "text/plain;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Certificado_Seguridad_PayNex_${Date.now()}.txt`;
+    link.download = `Certificado_Seguridad_Altevrashop_${Date.now()}.txt`;
     link.click();
     URL.revokeObjectURL(link.href);
     logConsole("Certificado de seguridad descargado.", "#10b981");

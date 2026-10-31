@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PayNex - Marketplace y Panel de Control</title>
-  <link rel="icon" type="image/png" href="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png">
+  <title>Altevrashop - Marketplace y Panel de Control</title>
+  <link rel="icon" type="image/png" href="img/isologo_square.png">
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="chatbot.css">
 </head>
@@ -21,8 +21,8 @@
         <!-- Logo y botón de cerrar en móvil -->
         <div class="sidebar-header-wrapper">
           <a href="index.html" class="sidebar-logo">
-            <img src="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png" alt="PayNex" class="sidebar-logo-img">
-            <span class="sidebar-logo-text">Pay<span>Nex</span></span>
+            <img src="img/isologo.png" alt="Altevrashop" class="sidebar-logo-img">
+            <span class="sidebar-logo-text">Altevra<span>shop</span></span>
           </a>
           <button type="button" class="btn-sidebar-close" id="btnCloseSidebar" aria-label="Cerrar menú lateral">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,10 +130,10 @@
             </svg>
           </button>
 
-          <!-- Logo móvil PayNex visible en pantallas pequeñas -->
+          <!-- Logo móvil Altevrashop visible en pantallas pequeñas -->
           <a href="index.html" class="navbar-mobile-brand">
-            <img src="img/d55cc77d-427c-475a-bfd1-8a84c49639dc.png" alt="PayNex">
-            <span class="brand-text">Pay<span>Nex</span></span>
+            <img src="img/isologo.png" alt="Altevrashop">
+            <span class="brand-text">Altevra<span>shop</span></span>
           </a>
         </div>
 
@@ -228,7 +228,7 @@
         <!-- Banner Hero Promocional -->
         <div class="hero-promo-banner">
           <div class="banner-content">
-            <span class="banner-badge">¡Bienvenido a PayNex!</span>
+            <span class="banner-badge">¡Bienvenido a Altevrashop!</span>
             <h1 class="banner-title">
               Todo lo que necesitas,<br>en un solo lugar
             </h1>
@@ -243,7 +243,7 @@
 
           <!-- Composición 3D con Controles del Carrusel -->
           <div class="banner-artwork-wrap">
-            <img src="img/mockup2_banner_3d_2x.png" alt="Productos PayNex 3D" class="banner-3d-img">
+            <img src="img/mockup2_banner_3d_2x.png" alt="Productos Altevrashop 3D" class="banner-3d-img">
             
             <div class="carousel-controls">
               <button type="button" class="carousel-arrow" id="btnPrevSlide" title="Anterior">‹</button>
@@ -418,7 +418,7 @@
         <div class="section-header-row" style="margin-bottom: 20px;">
           <div>
             <h2>Mis Compras</h2>
-            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Historial de compras. Tu proveedor actualiza el estado de tu pedido en tiempo real y PayNex gestiona cualquier mediación o garantía.</p>
+            <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Historial de compras. Tu proveedor actualiza el estado de tu pedido en tiempo real y Altevrashop gestiona cualquier mediación o garantía.</p>
           </div>
         </div>
 
@@ -451,7 +451,7 @@
                 <th>Monto Total</th>
                 <th>Fecha</th>
                 <th>Estado del Pedido</th>
-                <th>Garantía & Mediación PayNex</th>
+                <th>Garantía & Mediación Altevrashop</th>
               </tr>
             </thead>
             <tbody id="buyerOrdersTableBody">
@@ -630,12 +630,67 @@
       <!-- ================= VISTA 6: MI PERFIL ================= -->
       <section id="view-perfil" class="view-container">
         <div class="card-table-panel" style="max-width: 680px; margin: 0 auto;">
-          <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px;">
-            <img id="profileUserAvatar" src="img/register_panel.png" alt="Foto de perfil" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #ede9fe;">
-            <div>
-              <h3 style="font-size: 20px;" id="profileDisplayName">Mi perfil</h3>
-              <p style="font-size: 13px; color: var(--text-muted);">Comprador & Emprendedor en PayNex</p>
-              <p style="font-size: 12px; color: var(--text-muted);">La edición de foto se habilitará al configurar Firebase Storage.</p>
+          <!-- Encabezado y Cambio de Foto de Perfil -->
+          <div class="profile-avatar-container">
+            <div class="profile-avatar-wrapper" id="profileAvatarWrapper" title="Haz clic para subir o cambiar tu foto">
+              <img id="profileUserAvatar" src="img/register_panel.png" alt="Foto de perfil" class="profile-avatar-img">
+              <div class="profile-avatar-overlay">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+              <button type="button" class="btn-avatar-badge" id="btnTriggerAvatarBadge" aria-label="Cambiar foto de perfil">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </button>
+            </div>
+
+            <div style="flex: 1; min-width: 220px;">
+              <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;" id="profileDisplayName">Mi perfil</h3>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Comprador & Emprendedor en Altevrashop</p>
+              
+              <!-- Botones de Acción para la Foto -->
+              <div class="profile-avatar-actions">
+                <button type="button" class="btn-avatar-action primary" id="btnUploadAvatar">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  Subir Foto
+                </button>
+                <button type="button" class="btn-avatar-action" id="btnToggleAvatarUrl">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  </svg>
+                  Pegar Enlace
+                </button>
+                <button type="button" class="btn-avatar-action danger" id="btnResetAvatar" title="Restablecer a avatar por defecto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  Quitar
+                </button>
+              </div>
+
+              <!-- Input oculto para subir archivo desde el dispositivo -->
+              <input type="file" id="profileAvatarFileInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/gif" style="display: none;">
+
+              <!-- Subfila para ingresar URL de imagen si el usuario lo prefiere -->
+              <div id="avatarUrlContainer" class="avatar-input-subrow" style="display: none;">
+                <input type="url" id="avatarUrlField" placeholder="https://ejemplo.com/mi-foto.jpg">
+                <button type="button" class="btn-avatar-action primary" id="btnApplyAvatarUrl">Aplicar</button>
+                <button type="button" class="btn-avatar-action" id="btnCancelAvatarUrl">✕</button>
+              </div>
+
+              <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+                Admite JPG, PNG o WEBP. Se optimiza y ajusta automáticamente.
+              </p>
             </div>
           </div>
 
@@ -731,7 +786,7 @@
         <input type="hidden" id="prodEditId">
         <div class="form-group-custom">
           <label>Nombre del Producto</label>
-          <input type="text" id="prodTitleInput" class="input-custom" placeholder="Ej: Camiseta Urbana PayNex" maxlength="120" required>
+          <input type="text" id="prodTitleInput" class="input-custom" placeholder="Ej: Camiseta Urbana Altevrashop" maxlength="120" required>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -770,8 +825,8 @@
       </form>
     </div>
   </div>
-  <!-- ================= MODAL SOPORTE Y MEDIACIÓN PAYNEX ================= -->
-  <div class="modal-overlay" id="paynexSupportModal" style="display: none; z-index: 9990;">
+  <!-- ================= MODAL SOPORTE Y MEDIACIÓN ALTEVRASHOP ================= -->
+  <div class="modal-overlay" id="altevrashopSupportModal" style="display: none; z-index: 9990;">
     <div class="modal-card" style="max-width: 640px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 24px;">
       <div class="modal-header" style="margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -779,7 +834,7 @@
             🛡️
           </div>
           <div>
-            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #0f172a;">Centro de Mediación & Soporte PayNex</h3>
+            <h3 style="font-size: 17px; font-weight: 700; margin: 0; color: #0f172a;">Centro de Mediación & Soporte Altevrashop</h3>
             <span style="font-size: 12px; color: #64748b;">Nosotros gestionamos tu solicitud directamente con el proveedor</span>
           </div>
         </div>
@@ -806,11 +861,11 @@
 
       <!-- Garantía de Intermediación -->
       <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: #3730a3; line-height: 1.5;">
-        🤝 <strong>Garantía y Protección PayNex:</strong> Para tu seguridad y tranquilidad, tú no tienes que discutir con el proveedor. El equipo de Operaciones de PayNex asume tu caso, contacta al vendedor y gestiona la solución o reembolso en tu nombre.
+        🤝 <strong>Garantía y Protección Altevrashop:</strong> Para tu seguridad y tranquilidad, tú no tienes que discutir con el proveedor. El equipo de Operaciones de Altevrashop asume tu caso, contacta al vendedor y gestiona la solución o reembolso en tu nombre.
       </div>
 
       <!-- Formulario de Requerimiento -->
-      <form id="paynexSupportForm">
+      <form id="altevrashopSupportForm">
         <input type="hidden" id="supportOrderId">
         <input type="hidden" id="supportProductId">
         <input type="hidden" id="supportSellerId">
@@ -822,7 +877,7 @@
             <option value="Solicitud de corrección de dirección o contacto">📍 Solicitar cambio de dirección o datos del envío</option>
             <option value="El producto recibido no corresponde o tiene fallas">⚠️ El producto recibido presenta novedades o no corresponde</option>
             <option value="Pregunta o consulta técnica sobre el producto">💬 Pregunta o consulta técnica sobre el producto al proveedor</option>
-            <option value="Solicitud de cancelación y reembolso">↩️ Solicitud de cancelación y reembolso (Garantía PayNex)</option>
+            <option value="Solicitud de cancelación y reembolso">↩️ Solicitud de cancelación y reembolso (Garantía Altevrashop)</option>
             <option value="Otra solicitud de mediación formal">⚖️ Otra solicitud de mediación formal</option>
           </select>
         </div>
@@ -838,20 +893,20 @@
 
         <div class="form-group-custom" style="margin-bottom: 14px;">
           <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; display: block;">Explícanos tu requerimiento detalladamente</label>
-          <textarea id="supportMessageInput" class="input-custom" rows="4" placeholder="Describe qué ocurrió o qué necesitas para que nuestro equipo de PayNex gestione la solución de inmediato con el proveedor..." required style="width: 100%; resize: vertical; min-height: 80px;"></textarea>
+          <textarea id="supportMessageInput" class="input-custom" rows="4" placeholder="Describe qué ocurrió o qué necesitas para que nuestro equipo de Altevrashop gestione la solución de inmediato con el proveedor..." required style="width: 100%; resize: vertical; min-height: 80px;"></textarea>
         </div>
 
         <div style="margin-bottom: 16px;">
           <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; cursor: pointer; color: #475569;">
             <input type="checkbox" id="supportConsentCheck" checked required style="margin-top: 3px; accent-color: #4f46e5;">
-            <span>Autorizo al equipo de PayNex a intermediar y gestionar esta solicitud formal ante el proveedor en mi nombre.</span>
+            <span>Autorizo al equipo de Altevrashop a intermediar y gestionar esta solicitud formal ante el proveedor en mi nombre.</span>
           </label>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" class="btn-close-modal" id="btnCancelSupportModal" style="font-size: 13.5px; padding: 8px 16px;">Cancelar</button>
           <button type="submit" class="btn-primary-action" id="btnSubmitSupportTicket" style="padding: 9px 20px; font-size: 13.5px;">
-            <span>Enviar a Gestión PayNex</span>
+            <span>Enviar a Gestión Altevrashop</span>
             <span>🚀</span>
           </button>
         </div>
@@ -871,7 +926,7 @@
   <!-- Scripts JavaScript -->
   <script type="module" src="dashboard.js"></script>
 
-  <!-- Asistente Virtual Chatbot PayNex -->
+  <!-- Asistente Virtual Chatbot Altevrashop -->
   <script src="chatbot.js" defer></script>
 </body>
 </html>

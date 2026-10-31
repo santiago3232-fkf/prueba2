@@ -20,7 +20,7 @@ import {
 } from "./firebase-confi.js";
 
 export const REGISTRATION_ENABLED = true;
-const PROFILE_REQUIRED_MESSAGE = "No encontramos un perfil PayNex asociado a esta cuenta. Si el problema continúa, contacta a soporte.";
+const PROFILE_REQUIRED_MESSAGE = "No encontramos un perfil Altevrashop asociado a esta cuenta. Si el problema continúa, contacta a soporte.";
 
 export function determineRole(email, selectedRole = "cliente") {
   return selectedRole === "vendedor" ? "vendedor" : "cliente";
@@ -145,7 +145,7 @@ export async function registerUser(email, password, firstName, lastName, selecte
 
     // Persistir perfil local de contingencia
     try {
-      localStorage.setItem(`paynex_profile_${user.uid}`, JSON.stringify({
+      localStorage.setItem(`altevrashop_profile_${user.uid}`, JSON.stringify({
         ...fullUserData,
         createdAt: new Date().toISOString()
       }));
@@ -191,11 +191,11 @@ export async function loginUser(email, password, rememberMe = false) {
           createdAt: serverTimestamp()
         };
         await setDoc(userDocRef, autoProfile).catch(e => console.warn("No se pudo escribir auto-perfil:", e));
-        localStorage.setItem(`paynex_profile_${user.uid}`, JSON.stringify(autoProfile));
+        localStorage.setItem(`altevrashop_profile_${user.uid}`, JSON.stringify(autoProfile));
       }
     } catch (docErr) {
       console.warn("Error leyendo documento en loginUser, usando perfil contingencia:", docErr);
-      const savedProfile = localStorage.getItem(`paynex_profile_${user.uid}`);
+      const savedProfile = localStorage.getItem(`altevrashop_profile_${user.uid}`) || localStorage.getItem(`paynex_profile_${user.uid}`);
       if (savedProfile) {
         try { role = JSON.parse(savedProfile).role || role; } catch (e) {}
       }
@@ -284,6 +284,7 @@ export async function resetPassword(email) {
 export function checkAuthState(callback, onProfileError) {
   return onAuthStateChanged(auth, async (firebaseUser) => {
     try {
+      sessionStorage.removeItem("altevrashop_temp_user");
       sessionStorage.removeItem("paynex_temp_user");
     } catch (error) {
       console.warn("No se pudo limpiar el perfil temporal heredado:", error);
@@ -309,10 +310,20 @@ export function checkAuthState(callback, onProfileError) {
 
     // Intentar leer caché local previa
     try {
-      const cached = localStorage.getItem(`paynex_profile_${firebaseUser.uid}`);
+      const cached = localStorage.getItem(`altevrashop_profile_${firebaseUser.uid}`) || localStorage.getItem(`paynex_profile_${firebaseUser.uid}`);
       if (cached) {
         const parsed = JSON.parse(cached);
         userData = { ...userData, ...parsed };
+      }
+    } catch (e) {}
+
+    // Preservar avatar personalizado guardado localmente
+    try {
+      const localAvatar = localStorage.getItem(`altevrashop_avatar_${firebaseUser.uid}`) ||
+                          localStorage.getItem(`altevrashop_avatar_${firebaseUser.email}`) ||
+                          localStorage.getItem(`paynex_avatar_${firebaseUser.email}`);
+      if (localAvatar) {
+        userData.photoURL = localAvatar;
       }
     } catch (e) {}
 
@@ -327,11 +338,11 @@ export function checkAuthState(callback, onProfileError) {
           firstName: firestoreData.firstName || userData.firstName,
           lastName: firestoreData.lastName || userData.lastName,
           username: firestoreData.username || userData.username,
-          photoURL: firestoreData.photoURL || userData.photoURL,
+          photoURL: userData.photoURL || firestoreData.photoURL || "",
           role: determineRole(firebaseUser.email, firestoreData.role)
         };
         // Actualizar caché local
-        localStorage.setItem(`paynex_profile_${firebaseUser.uid}`, JSON.stringify(userData));
+        localStorage.setItem(`altevrashop_profile_${firebaseUser.uid}`, JSON.stringify(userData));
       } else {
         // Documento no existe en Firestore, intentar auto-crearlo
         console.warn("Perfil ausente en Firestore, auto-creando perfil inicial...");

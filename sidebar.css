@@ -1,14 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --paynex-sidebar-bg: #132246;
-  --paynex-sidebar-hover: #1e293b;
-  --paynex-sidebar-active: #6366f1;
-  --paynex-sidebar-text: #94a3b8;
-  --paynex-sidebar-text-active: #ffffff;
-  --paynex-radius-md: 12px;
-  --paynex-radius-lg: 16px;
-  --paynex-sidebar-width: 260px;
+  --altevrashop-sidebar-bg: #132246;
+  --altevrashop-sidebar-hover: #1e293b;
+  --altevrashop-sidebar-active: #6366f1;
+  --altevrashop-sidebar-text: #94a3b8;
+  --altevrashop-sidebar-text-active: #ffffff;
+  --altevrashop-radius-md: 12px;
+  --altevrashop-radius-lg: 16px;
+  --altevrashop-sidebar-width: 260px;
+
+  --paynex-sidebar-bg: var(--altevrashop-sidebar-bg);
+  --paynex-sidebar-hover: var(--altevrashop-sidebar-hover);
+  --paynex-sidebar-active: var(--altevrashop-sidebar-active);
+  --paynex-sidebar-text: var(--altevrashop-sidebar-text);
+  --paynex-sidebar-text-active: var(--altevrashop-sidebar-text-active);
+  --paynex-radius-md: var(--altevrashop-radius-md);
+  --paynex-radius-lg: var(--altevrashop-radius-lg);
+  --paynex-sidebar-width: var(--altevrashop-sidebar-width);
 }
 
 /* Transición suave para el contenido al abrir/cerrar sidebar */
@@ -18,13 +27,13 @@ body {
 
 @media (min-width: 992px) {
   body.sidebar-open {
-    padding-left: var(--paynex-sidebar-width);
+    padding-left: var(--altevrashop-sidebar-width);
   }
 }
 
 /* ================= MENÚ LATERAL OSCURO ================= */
 .sidebar {
-  width: var(--paynex-sidebar-width);
+  width: var(--altevrashop-sidebar-width);
   background-color: #6769ff;
   color: #ffffff;
   display: flex;
@@ -99,7 +108,7 @@ body.sidebar-open .sidebar {
 }
 
 .btn-sidebar-close:hover {
-  background: var(--paynex-sidebar-hover);
+  background: var(--altevrashop-sidebar-hover);
   color: #ffffff;
 }
 
@@ -116,9 +125,9 @@ body.sidebar-open .sidebar {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  color: var(--paynex-sidebar-text);
+  color: var(--altevrashop-sidebar-text);
   text-decoration: none;
-  border-radius: var(--paynex-radius-md);
+  border-radius: var(--altevrashop-radius-md);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -126,8 +135,8 @@ body.sidebar-open .sidebar {
 }
 
 .sidebar .nav-item:hover {
-  background-color: var(--paynex-sidebar-hover);
-  color: var(--paynex-sidebar-text-active);
+  background-color: var(--altevrashop-sidebar-hover);
+  color: var(--altevrashop-sidebar-text-active);
   transform: translateX(2px);
 }
 
@@ -157,7 +166,7 @@ body.sidebar-open .sidebar {
   gap: 12px;
   padding: 10px 12px;
   background: rgba(240, 3, 3, 0.05);
-  border-radius: var(--paynex-radius-md);
+  border-radius: var(--altevrashop-radius-md);
   margin-bottom: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -205,7 +214,7 @@ body.sidebar-open .sidebar {
   color: #10b981;
   font-size: 14px;
   font-weight: 600;
-  border-radius: var(--paynex-radius-md);
+  border-radius: var(--altevrashop-radius-md);
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s;
@@ -228,7 +237,7 @@ body.sidebar-open .sidebar {
   color: #f53232;
   font-size: 14px;
   font-weight: 600;
-  border-radius: var(--paynex-radius-md);
+  border-radius: var(--altevrashop-radius-md);
   cursor: pointer;
   transition: all 0.2s;
   box-sizing: border-box;
